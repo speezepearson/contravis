@@ -6,7 +6,6 @@ import { List, Map } from "immutable";
 import { HTMLProps, useEffect, useMemo, useRef, useState } from "react";
 import {
   ByDancer,
-  DancerId,
   DancerState,
   findPersonInDirection,
   fwd,
@@ -154,7 +153,7 @@ function ContraDance() {
       }))
     );
     return res;
-  }, []);
+  }, [init]);
 
   const setDancerRef = useMemo(
     () =>
@@ -208,7 +207,7 @@ function ContraDance() {
       lastBeat += keyframe.beats;
     }
     return anim;
-  }, [dancerRefs, keyframes, totalBeats]);
+  }, [init, dancerRefs, keyframes, totalBeats]);
 
   const prevAnim = useRef<anime.AnimeInstance | null>(null);
   useEffect(() => {
