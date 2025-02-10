@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   findPersonInDirection,
-  DanceSet,
+  ByDancer,
   initImproper,
   LARK,
   fwd,
@@ -10,6 +10,7 @@ import {
   partnerward,
   swingKfs,
   robinsChainAcrossKfs,
+  DancerState,
 } from "./contra";
 import { Map } from "immutable";
 import Victor from "victor";
@@ -143,7 +144,7 @@ describe("initBeckett", () => {
 
 describe("findPersonInDirection", () => {
   test("smoke", () => {
-    const state: DanceSet = Map([
+    const state: ByDancer<DancerState> = Map([
       [
         "Alice",
         {

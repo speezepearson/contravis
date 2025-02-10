@@ -5,6 +5,7 @@ import anime from "animejs";
 import { List, Map } from "immutable";
 import { HTMLProps, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ByDancer,
   DancerId,
   DancerState,
   findPersonInDirection,
@@ -101,9 +102,9 @@ function animeProps(dancer: DancerState) {
 }
 
 function ContraDance() {
-  const [dancerRefs, setDancerRefs] = useState<
-    Map<DancerId, SVGSVGElement | null>
-  >(Map());
+  const [dancerRefs, setDancerRefs] = useState<ByDancer<SVGSVGElement | null>>(
+    Map()
+  );
 
   const init = useMemo(() => initImproper(4), []);
   const keyframes = useMemo(() => {

@@ -35,13 +35,13 @@ export interface DancerState {
   facing: Angle;
 }
 
-export type DanceSet = Map<DancerId, DancerState>;
+export type ByDancer<T> = Map<DancerId, T>;
 
 export function findPersonInDirection(
-  state: DanceSet,
+  state: ByDancer<DancerState>,
   offset: (dancer: DancerState) => Victor | null,
   slop: number = 0.2
-): Map<DancerId, DancerId | null> {
+): ByDancer<DancerId | null> {
   return state.map((dancer) => {
     const relposn = offset(dancer);
     if (!relposn) {
@@ -60,7 +60,7 @@ export function findPersonInDirection(
   });
 }
 
-export function ensureSymmetric(counterparts: Map<DancerId, DancerId>) {
+export function ensureSymmetric(counterparts: ByDancer<DancerId>) {
   for (const [id, counterpart] of counterparts.entries()) {
     const counterpartCounterpart = counterparts.get(counterpart);
     if (counterpartCounterpart !== id) {
@@ -71,7 +71,7 @@ export function ensureSymmetric(counterparts: Map<DancerId, DancerId>) {
   }
 }
 
-export function initImproper(nHandsFours: number): DanceSet {
+export function initImproper(nHandsFours: number): ByDancer<DancerState> {
   return Map(
     Array.from({ length: nHandsFours }).flatMap((_, h4i) => {
       return [
@@ -116,7 +116,7 @@ export function initImproper(nHandsFours: number): DanceSet {
   );
 }
 
-export function initBeckett(nHandsFours: number): DanceSet {
+export function initBeckett(nHandsFours: number): ByDancer<DancerState> {
   return Map(
     Array.from({ length: nHandsFours }).flatMap((_, h4i) => {
       return [
@@ -163,11 +163,11 @@ export function initBeckett(nHandsFours: number): DanceSet {
 
 export type Keyframe = {
   beats: number;
-  end: DanceSet;
+  end: ByDancer<DancerState>;
 };
 
 export function swingKfs(
-  state: DanceSet,
+  state: ByDancer<DancerState>,
   { beats = 4 }: { beats?: number } = {}
 ): List<Keyframe> {
   const counterparts = findPersonInDirection(state, () => fwd(2));
@@ -199,7 +199,9 @@ export function swingKfs(
   return List.of({ beats, end });
 }
 
-export function robinsChainAcrossKfs(state: DanceSet): List<Keyframe> {
+export function robinsChainAcrossKfs(
+  state: ByDancer<DancerState>
+): List<Keyframe> {
   const robinOpposites = findPersonInDirection(state, ({ role }) =>
     role === ROBIN ? fwd(2).add(partnerward({ role }, 2)) : null
   );
