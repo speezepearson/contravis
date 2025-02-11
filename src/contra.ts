@@ -44,6 +44,14 @@ export interface DancerState {
 }
 export type DancerKeyframe = { beats: number; end: DancerState };
 
+export interface Subroutine {
+  name: string;
+  beats: number;
+  buildKeyframes: (
+    cur: ByDancer<DancerState>
+  ) => ByDancer<List<DancerKeyframe>>;
+}
+
 export type ByDancer<T> = Map<DancerId, T>;
 
 export function findPersonInDirection(
@@ -192,6 +200,19 @@ export function initBeckett(nHandsFours: number): ByDancer<DancerState> {
   );
 }
 
+export function swing({
+  beats,
+  withYour,
+}: {
+  beats: number;
+  withYour: keyof DancerState["labels"];
+}): Subroutine {
+  return {
+    name: `swing your ${withYour}`,
+    beats,
+    buildKeyframes: (cur) => swingKfs(cur, { withYour, beats }),
+  };
+}
 export function swingKfs(
   state: ByDancer<DancerState>,
   { withYour, beats }: { withYour: keyof DancerState["labels"]; beats: number }
@@ -239,6 +260,17 @@ export function swingKfs(
   });
 }
 
+export function robinsChainAcross({
+  toYour,
+}: {
+  toYour: keyof DancerState["labels"];
+}): Subroutine {
+  return {
+    name: `robins chain to your ${toYour}`,
+    beats: 8,
+    buildKeyframes: (cur) => robinsChainAcrossKfs(cur, { toYour }),
+  };
+}
 export function robinsChainAcrossKfs(
   state: ByDancer<DancerState>,
   { toYour }: { toYour: keyof DancerState["labels"] }
@@ -327,15 +359,24 @@ export function waveBalanceBellySlideKfs(
   });
 }
 
+export function petronella({
+  withYour = ["partner", "neighbor"],
+}: {
+  withYour?: [keyof DancerState["labels"], keyof DancerState["labels"]];
+} = {}): Subroutine {
+  return {
+    name: `petronella with your ${withYour[0]} and ${withYour[1]}`,
+    beats: 8,
+    buildKeyframes: (cur) => petronellaKfs(cur, { withYour }),
+  };
+}
 export function petronellaKfs(
   state: ByDancer<DancerState>,
   {
-    withYour,
+    withYour = ["partner", "neighbor"],
   }: {
-    withYour: [keyof DancerState["labels"], keyof DancerState["labels"]];
-  } = {
-    withYour: ["partner", "neighbor"],
-  }
+    withYour?: [keyof DancerState["labels"], keyof DancerState["labels"]];
+  } = {}
 ): ByDancer<List<DancerKeyframe>> {
   return state.map((dancer, id) => {
     const counter0 = state.get(dancer.labels[withYour[0]]!)!;
@@ -395,6 +436,17 @@ export function petronellaKfs(
   });
 }
 
+export function balance({
+  withYour,
+}: {
+  withYour: keyof DancerState["labels"];
+}): Subroutine {
+  return {
+    name: `balance your ${withYour}`,
+    beats: 4,
+    buildKeyframes: (cur) => balanceKfs(cur, { withYour }),
+  };
+}
 export function balanceKfs(
   state: ByDancer<DancerState>,
   { withYour }: { withYour: keyof DancerState["labels"] }
@@ -430,6 +482,17 @@ export function balanceKfs(
   });
 }
 
+export function boxTheGnat({
+  withYour,
+}: {
+  withYour: keyof DancerState["labels"];
+}): Subroutine {
+  return {
+    name: `box the gnat with your ${withYour}`,
+    beats: 4,
+    buildKeyframes: (cur) => boxTheGnatKfs(cur, { withYour }),
+  };
+}
 export function boxTheGnatKfs(
   state: ByDancer<DancerState>,
   { withYour }: { withYour: keyof DancerState["labels"] }
@@ -470,37 +533,6 @@ export function getCurState(
       return kfs.last()?.end;
     })
     .filter((dancer) => dancer !== undefined);
-}
-
-export function extendKeyframes(
-  prev: ByDancer<List<DancerKeyframe>>,
-  next: (cur: ByDancer<DancerState>) => ByDancer<List<DancerKeyframe>>
-): ByDancer<List<DancerKeyframe>> {
-  const cur = getCurState(prev);
-  const kfs = addRestKeyframes(cur, next(cur));
-  return prev.map((prev, id) => prev.concat(kfs.get(id, List())));
-}
-
-export function addRestKeyframes(
-  cur: ByDancer<DancerState>,
-  kfs: ByDancer<List<DancerKeyframe>>
-): ByDancer<List<DancerKeyframe>> {
-  const totalDelays = kfs.map((kfs) => kfs.reduce((t, kf) => t + kf.beats, 0));
-  const tf = totalDelays.valueSeq().max() ?? 0;
-  return cur.map((start, id) => {
-    const dkfs = kfs.get(id);
-    if (!dkfs) {
-      return List.of({ beats: tf, end: start });
-    }
-    const totalDelay = totalDelays.get(id)!;
-    if (totalDelay === tf) {
-      return dkfs;
-    }
-    return dkfs.push({
-      beats: tf - totalDelay,
-      end: dkfs.last()?.end ?? start,
-    });
-  });
 }
 
 export function move(
@@ -612,10 +644,7 @@ export function fudgeFacing(
 
 export function compose(
   init: ByDancer<DancerState>,
-  pieces: Iterable<
-    | ((cur: ByDancer<DancerState>) => ByDancer<List<DancerKeyframe>>)
-    | { endThatMoveFacing: FudgeFacingDir }
-  >
+  pieces: Iterable<Subroutine | { endThatMoveFacing: FudgeFacingDir }>
 ): ByDancer<List<DancerKeyframe>> {
   let res: ByDancer<List<DancerKeyframe>> = init.map((dancer) =>
     List.of({ beats: 0, end: dancer })
@@ -623,11 +652,26 @@ export function compose(
 
   for (const piece of pieces) {
     const cur = res.size === 0 ? init : getCurState(res);
-    if (typeof piece === "function") {
-      const newKfs = addRestKeyframes(cur, piece(cur));
-      res = res.map((kfs, id) => kfs.concat(newKfs.get(id, List())));
-    } else {
+    if ("endThatMoveFacing" in piece) {
       res = fudgeFacing(res, piece.endThatMoveFacing);
+    } else {
+      const newKfss = piece.buildKeyframes(cur);
+      res = res.map((oldKfs, id) => {
+        const newKfs = newKfss.get(id, List<DancerKeyframe>());
+        const newKfsBeats = newKfs.reduce((t, kf) => t + kf.beats, 0);
+        if (newKfsBeats > piece.beats) {
+          throw new Error(
+            `dancer ${id} has ${newKfsBeats} beats of keyframes to accomplish but subroutine has only ${piece.beats} beats`
+          );
+        }
+        if (newKfsBeats === piece.beats) {
+          return oldKfs.concat(newKfs);
+        }
+        return oldKfs.concat(newKfs).push({
+          beats: piece.beats - newKfsBeats,
+          end: oldKfs.concat(newKfs).last()!.end,
+        });
+      });
     }
   }
 
