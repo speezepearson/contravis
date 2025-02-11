@@ -196,7 +196,7 @@ export function initBeckett(nHandsFours: number): ByDancer<DancerState> {
 
 export function swingKfs(
   state: ByDancer<DancerState>,
-  { withYour }: { withYour: keyof DancerState["labels"] }
+  { withYour, beats }: { withYour: keyof DancerState["labels"]; beats: number }
 ): ByDancer<List<DancerKeyframe>> {
   return state.map((dancer, id) => {
     const counterpartId = dancer.labels[withYour];
@@ -223,19 +223,19 @@ export function swingKfs(
       dancer.posn.y < counterpart.posn.y;
     if (swapPosns) {
       return moves(dancer, [
-        { beats: 8 / 6, dx: fwd().add(left(0.3)), dccw: -1 / 4 },
-        { beats: 8 / 6, dx: fwd().add(fwd(0.3)), dccw: -1 / 2 },
-        { beats: 8 / 6, dx: fwd().add(right(0.3)), dccw: -3 / 4 },
-        { beats: 8 / 6, dx: fwd().add(bak(0.3)), dccw: -4 / 4 },
-        { beats: 8 / 6, dx: fwd().add(left(0.3)), dccw: -5 / 4 },
-        { beats: 8 / 6, dx: fwd(2), dccw: -5 / 4 + extraCcw },
+        { beats: beats / 6, dx: fwd().add(left(0.3)), dccw: -1 / 4 },
+        { beats: beats / 6, dx: fwd().add(fwd(0.3)), dccw: -1 / 2 },
+        { beats: beats / 6, dx: fwd().add(right(0.3)), dccw: -3 / 4 },
+        { beats: beats / 6, dx: fwd().add(bak(0.3)), dccw: -4 / 4 },
+        { beats: beats / 6, dx: fwd().add(left(0.3)), dccw: -5 / 4 },
+        { beats: beats / 6, dx: fwd(2), dccw: -5 / 4 + extraCcw },
       ]);
     } else {
       return moves(dancer, [
-        { beats: 2, dx: fwd().add(left(0.3)), dccw: -1 / 4 },
-        { beats: 2, dx: fwd().add(fwd(0.3)), dccw: -2 / 4 },
-        { beats: 2, dx: fwd().add(right(0.3)), dccw: -3 / 4 },
-        { beats: 2, dccw: -3 / 4 + extraCcw },
+        { beats: beats / 4, dx: fwd().add(left(0.3)), dccw: -1 / 4 },
+        { beats: beats / 4, dx: fwd().add(fwd(0.3)), dccw: -2 / 4 },
+        { beats: beats / 4, dx: fwd().add(right(0.3)), dccw: -3 / 4 },
+        { beats: beats / 4, dccw: -3 / 4 + extraCcw },
       ]);
     }
   });
@@ -555,14 +555,15 @@ export function moves(
   }));
 }
 
+type FudgeFacingDir =
+  | "progress"
+  | "antiprogress"
+  | "across"
+  | "partnerward"
+  | "neighborward";
 export function fudgeFacing(
   keyframes: ByDancer<List<DancerKeyframe>>,
-  facing:
-    | "progress"
-    | "antiprogress"
-    | "across"
-    | "partnerward"
-    | "neighborward"
+  facing: FudgeFacingDir
 ): ByDancer<List<DancerKeyframe>> {
   return keyframes.map((kfs) => {
     const unfudged = kfs.last()!;
@@ -608,4 +609,28 @@ export function fudgeFacing(
       },
     });
   });
+}
+
+export function compose(
+  init: ByDancer<DancerState>,
+  pieces: Iterable<
+    | ((cur: ByDancer<DancerState>) => ByDancer<List<DancerKeyframe>>)
+    | { endThatMoveFacing: FudgeFacingDir }
+  >
+): ByDancer<List<DancerKeyframe>> {
+  let res: ByDancer<List<DancerKeyframe>> = init.map((dancer) =>
+    List.of({ beats: 0, end: dancer })
+  );
+
+  for (const piece of pieces) {
+    const cur = res.size === 0 ? init : getCurState(res);
+    if (typeof piece === "function") {
+      const newKfs = addRestKeyframes(cur, piece(cur));
+      res = res.map((kfs, id) => kfs.concat(newKfs.get(id, List())));
+    } else {
+      res = fudgeFacing(res, piece.endThatMoveFacing);
+    }
+  }
+
+  return res;
 }

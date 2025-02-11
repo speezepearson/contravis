@@ -14,7 +14,6 @@ import {
   swingKfs,
   fwd,
   ROBIN,
-  extendKeyframes,
   moves,
   right,
   left,
@@ -25,7 +24,7 @@ import {
   petronellaKfs,
   boxTheGnatKfs,
   balanceKfs,
-  fudgeFacing,
+  compose,
 } from "./contra";
 
 const pxPerPace = 50;
@@ -121,66 +120,50 @@ function ContraDance() {
 
   const init = useMemo(() => initImproper(4), []);
   const keyframes: ByDancer<List<DancerKeyframe>> = useMemo(() => {
-    let res: ByDancer<List<DancerKeyframe>> = init.map((state) =>
-      List.of({ beats: 0, end: state })
-    );
-
-    res = extendKeyframes(res, (cur) =>
-      balanceKfs(cur, {
-        withYour: "neighbor",
-      })
-    );
-    res = extendKeyframes(res, (cur) =>
-      boxTheGnatKfs(cur, {
-        withYour: "neighbor",
-      })
-    );
-    for (let i = 0; i < 2; i++) {
-      res = extendKeyframes(res, (cur) => petronellaKfs(cur));
-    }
-    res = fudgeFacing(res, "neighborward");
-    res = extendKeyframes(res, (cur) =>
-      swingKfs(cur, { withYour: "neighbor" })
-    );
-    res = extendKeyframes(res, (cur) =>
-      robinsChainAcrossKfs(cur, { toYour: "partner" })
-    );
-    res = extendKeyframes(res, (cur) => {
-      return cur.map((dancer) => {
-        if (dancer.role === ROBIN) return List();
-        return moves(dancer, [
-          {
-            beats: 8 / 6,
-            dx: fwd().add(right()).add(right(0.3)),
-            dccw: 0,
-          },
-          {
-            beats: 8 / 6,
-            dx: fwd().add(right()).add(fwd(0.3)),
-            dccw: 1 / 4,
-          },
-          {
-            beats: 8 / 6,
-            dx: fwd().add(right()).add(left(0.3)),
-            dccw: 2 / 4,
-          },
-          {
-            beats: 8 / 6,
-            dx: fwd().add(right()).add(bak(0.3)),
-            dccw: 3 / 4,
-          },
-          {
-            beats: 8 / 6,
-            dx: fwd().add(right()).add(right(0.3)),
-            dccw: 4 / 4,
-          },
-          { beats: 8 / 6, dx: fwd(2).add(right(2)), dccw: 6 / 4 },
-        ]);
-      });
-    });
-    res = extendKeyframes(res, (cur) => formWaveKfs(cur));
-    res = extendKeyframes(res, (cur) => waveBalanceBellySlideKfs(cur));
-    return res;
+    return compose(init, [
+      (cur) => balanceKfs(cur, { withYour: "neighbor" }),
+      (cur) => boxTheGnatKfs(cur, { withYour: "neighbor" }),
+      (cur) => petronellaKfs(cur),
+      (cur) => petronellaKfs(cur),
+      { endThatMoveFacing: "neighborward" },
+      (cur) => swingKfs(cur, { withYour: "neighbor", beats: 8 }),
+      (cur) => robinsChainAcrossKfs(cur, { toYour: "partner" }),
+      (cur) => {
+        return cur.map((dancer) => {
+          if (dancer.role === ROBIN) return List();
+          return moves(dancer, [
+            {
+              beats: 8 / 6,
+              dx: fwd().add(right()).add(right(0.3)),
+              dccw: 0,
+            },
+            {
+              beats: 8 / 6,
+              dx: fwd().add(right()).add(fwd(0.3)),
+              dccw: 1 / 4,
+            },
+            {
+              beats: 8 / 6,
+              dx: fwd().add(right()).add(left(0.3)),
+              dccw: 2 / 4,
+            },
+            {
+              beats: 8 / 6,
+              dx: fwd().add(right()).add(bak(0.3)),
+              dccw: 3 / 4,
+            },
+            {
+              beats: 8 / 6,
+              dx: fwd().add(right()).add(right(0.3)),
+              dccw: 4 / 4,
+            },
+            { beats: 8 / 6, dx: fwd(2).add(right(2)), dccw: 6 / 4 },
+          ]);
+        });
+      },
+      // (cur) => formWaveKfs(cur),
+      // (cur) => waveBalanceBellySlideKfs(cur),
+    ]);
   }, [init]);
 
   const setDancerRef = useMemo(

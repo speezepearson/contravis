@@ -234,7 +234,7 @@ describe("swingKfs", () => {
   test("smoke", () => {
     const state = initImproper(1);
     console.log("L0 starts at", state.get("L0"));
-    const end = swingKfs(state, { withYour: "neighbor" }).map(
+    const end = swingKfs(state, { withYour: "neighbor", beats: 8 }).map(
       (kfs) => kfs.last()?.end
     );
     expect(end.get("L0")).toMatchObject({
@@ -257,7 +257,7 @@ describe("swingKfs", () => {
 
   test("throws if dancers are across the set", () => {
     const state = initBeckett(1);
-    expect(() => swingKfs(state, { withYour: "neighbor" })).toThrow(
+    expect(() => swingKfs(state, { withYour: "neighbor", beats: 8 })).toThrow(
       /across the set/
     );
   });
