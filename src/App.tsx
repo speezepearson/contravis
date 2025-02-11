@@ -19,10 +19,14 @@ import {
   DancerId,
   compose,
   balance,
-  petronella,
   boxTheGnat,
   swing,
   robinsChainAcross,
+  ringBalance,
+  petronellaSpin,
+  InstructionDir,
+  Subroutine,
+  CompositionError,
 } from "./contra";
 
 const pxPerPace = 50;
@@ -117,12 +121,17 @@ function ContraDance() {
   );
 
   const init = useMemo(() => initImproper(4), []);
-  const keyframes: ByDancer<List<DancerKeyframe>> = useMemo(() => {
-    return compose(init, [
+
+  const [figures, setFigures] = useState<
+    List<Subroutine | { endThatMoveFacing: InstructionDir }>
+  >(
+    List([
       balance({ withYour: "neighbor" }),
       boxTheGnat({ withYour: "neighbor" }),
-      petronella(),
-      petronella(),
+      ringBalance(),
+      petronellaSpin(),
+      ringBalance(),
+      petronellaSpin(),
       { endThatMoveFacing: "neighborward" },
       swing({ beats: 8, withYour: "neighbor" }),
       robinsChainAcross({ toYour: "partner" }),
@@ -164,8 +173,24 @@ function ContraDance() {
       },
       // (cur) => formWaveKfs(cur),
       // (cur) => waveBalanceBellySlideKfs(cur),
-    ]);
-  }, [init]);
+    ])
+  );
+  const [keyframes, compositionError]: [
+    ByDancer<List<DancerKeyframe>>,
+    CompositionError | null
+  ] = useMemo(() => {
+    try {
+      return [compose(init, figures), null];
+    } catch (e) {
+      if (e instanceof CompositionError) {
+        return [e.partial, e];
+      }
+      throw e;
+    }
+  }, [init, figures]);
+  const compositionErrorInd = compositionError
+    ? figures.findIndex((f) => f === compositionError.subroutine)
+    : null;
 
   const setDancerRef = useMemo(
     () =>
@@ -189,12 +214,6 @@ function ContraDance() {
       }, 0) ?? 0;
 
   const anim: anime.AnimeInstance = useMemo(() => {
-    for (const [dancerId, dancer] of init.entries()) {
-      if (dancerRefs.get(dancerId)) {
-        anime.set(dancerRefs.get(dancerId)!, animeProps(dancer));
-      }
-    }
-
     const anim = anime.timeline({
       duration: beatsToMs(totalBeats),
       easing: "linear",
@@ -218,20 +237,41 @@ function ContraDance() {
         0
       );
     }
-    anim.seek(beatsToMs(10));
+
     return anim;
-  }, [init, dancerRefs, keyframes, totalBeats]);
+  }, [dancerRefs, keyframes, totalBeats]);
 
   const prevAnim = useRef<anime.AnimeInstance | null>(null);
   useEffect(() => {
     if (prevAnim.current) {
-      prevAnim.current.seek(0);
       prevAnim.current.pause();
     }
     prevAnim.current = anim;
   }, [anim]);
 
   const [beat, setBeat] = useState(0);
+  useEffect(() => {
+    if (beat > totalBeats) {
+      setBeat(totalBeats);
+    }
+  }, [beat, totalBeats]);
+  useEffect(() => {
+    if (Math.abs(anim.progress / 100 - beat / totalBeats) < 1e-6) {
+      return;
+    }
+    anim.seek(beatsToMs(beat));
+  }, [beat, anim, totalBeats]);
+
+  const curSubroutine = useMemo(() => {
+    let beatsSoFar = 0;
+    for (const [i, f] of figures.entries()) {
+      if (!("beats" in f)) continue;
+      beatsSoFar += f.beats;
+      if (beatsSoFar > beat) {
+        return { i, ...f };
+      }
+    }
+  }, [figures, beat]);
 
   // const curKeyframe = useMemo(() => {
   //   let beatsSoFar = 0;
@@ -287,6 +327,32 @@ function ContraDance() {
           <div>Keyframes: {JSON.stringify(focusedDancerBoundingKeyframes)}</div>
         </div>
       )}
+      <ul>
+        {figures.map((f, i) => (
+          <li
+            key={i}
+            style={{
+              fontWeight: curSubroutine?.i === i ? "bold" : "normal",
+              color:
+                compositionErrorInd != null && i >= compositionErrorInd
+                  ? "red"
+                  : "",
+            }}
+          >
+            {"endThatMoveFacing" in f ? f.endThatMoveFacing : f.name}{" "}
+            <button onClick={() => setFigures((figures) => figures.delete(i))}>
+              x
+            </button>
+          </li>
+        ))}
+        <li>
+          <AddMoveForm
+            onAdd={(f) => {
+              setFigures((figures) => figures.push(f));
+            }}
+          />
+        </li>
+      </ul>
       <div style={{ position: "relative" }}>
         {init.entrySeq().map(([id, dancer]) => (
           <div
@@ -311,6 +377,78 @@ function ContraDance() {
         ))}
       </div>
     </>
+  );
+}
+
+function AddMoveForm({
+  onAdd,
+}: {
+  onAdd: (f: Subroutine | { endThatMoveFacing: InstructionDir }) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const searchRegexp = useMemo(() => {
+    const pat = search
+      .split("")
+      .map((w) => `(?:${w}|.*\\b${w})`)
+      .join("");
+    return new RegExp(pat);
+  }, [search]);
+  const searchTest = (s: string) => searchRegexp.test(s.toLowerCase());
+
+  const figures: { text: string; figure: Parameters<typeof onAdd>[0] }[] = [
+    { text: "balance neighbor", figure: balance({ withYour: "neighbor" }) },
+    { text: "balance partner", figure: balance({ withYour: "partner" }) },
+    {
+      text: "box the gnat neighbor",
+      figure: boxTheGnat({ withYour: "neighbor" }),
+    },
+    {
+      text: "box the gnat partner",
+      figure: boxTheGnat({ withYour: "partner" }),
+    },
+    {
+      text: "petronella spin partner/neighbor",
+      figure: petronellaSpin({ withYour: ["partner", "neighbor"] }),
+    },
+    {
+      text: "ring balance partner/neighbor",
+      figure: ringBalance({ withYour: ["partner", "neighbor"] }),
+    },
+    {
+      text: "robins chain to neighbor",
+      figure: robinsChainAcross({ toYour: "neighbor" }),
+    },
+    {
+      text: "robins chain to partner",
+      figure: robinsChainAcross({ toYour: "partner" }),
+    },
+    { text: "face across", figure: { endThatMoveFacing: "across" } },
+    { text: "face your partner", figure: { endThatMoveFacing: "partnerward" } },
+    {
+      text: "face your neighbor",
+      figure: { endThatMoveFacing: "neighborward" },
+    },
+  ];
+  return (
+    <div>
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            onAdd(figures.find((f) => searchTest(f.text))!.figure);
+            setSearch("");
+          }
+        }}
+      />
+      {figures
+        .filter((f) => searchTest(f.text))
+        .map(({ text, figure }) => (
+          <button key={text} onClick={() => onAdd(figure)}>
+            {text}
+          </button>
+        ))}
+    </div>
   );
 }
 

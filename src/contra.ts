@@ -13,7 +13,7 @@ export function roleAbbrev(role: Role): "L" | "R" {
   }
 }
 
-type InstructionDir =
+export type InstructionDir =
   | "up"
   | "down"
   | "across"
@@ -372,79 +372,137 @@ export function waveBalanceBellySlideKfs(
   });
 }
 
-export function petronella({
+export function getTopoSquare(
+  cur: ByDancer<DancerState>,
+  cornerId: DancerId,
+  label1: keyof DancerState["labels"],
+  label2: keyof DancerState["labels"]
+): {
+  leftCounter: { id: DancerId; state: DancerState };
+  rightCounter: { id: DancerId; state: DancerState };
+  opposite: { id: DancerId; state: DancerState };
+} {
+  const dancer = cur.get(cornerId)!;
+  const counterId1 = dancer.labels[label1]!;
+  const counterId2 = dancer.labels[label2]!;
+  const counter1 = cur.get(counterId1)!;
+  const counter2 = cur.get(counterId2)!;
+  const oppositeId = counter1.labels[label2]!;
+  if (oppositeId !== counter2.labels[label1]) {
+    throw new Error(
+      `dancer ${cornerId} has ${label1}=${dancer.labels[label1]} and ${label2}=${dancer.labels[label2]} but ${counter1}'s ${label2} is ${counter1.labels[label2]} while ${counter2}'s ${label1} is ${counter2.labels[label1]}`
+    );
+  }
+  const opposite = cur.get(oppositeId)!;
+
+  const counter1IsRight = (() => {
+    const toCounter1 = counter1.posn.clone().subtract(dancer.posn);
+    const toCounter2 = counter2.posn.clone().subtract(dancer.posn);
+    return toCounter1.cross(toCounter2) > 0;
+  })();
+
+  return {
+    leftCounter: counter1IsRight
+      ? { id: counterId2, state: counter2 }
+      : { id: counterId1, state: counter1 },
+    rightCounter: counter1IsRight
+      ? { id: counterId1, state: counter1 }
+      : { id: counterId2, state: counter2 },
+    opposite: { id: oppositeId, state: opposite },
+  };
+}
+
+export function ringBalance({
   withYour = ["partner", "neighbor"],
 }: {
   withYour?: [keyof DancerState["labels"], keyof DancerState["labels"]];
 } = {}): Subroutine {
   return {
-    name: `petronella with your ${withYour[0]} and ${withYour[1]}`,
-    beats: 8,
-    buildKeyframes: (cur) => petronellaKfs(cur, { withYour }),
+    name: `balance the ring with your ${withYour[0]} and ${withYour[1]}`,
+    beats: 4,
+    buildKeyframes: (cur) => {
+      return cur.map((dancer, id) => {
+        const { leftCounter, rightCounter } = getTopoSquare(
+          cur,
+          id,
+          withYour[0],
+          withYour[1]
+        );
+        const center = leftCounter.state.posn
+          .clone()
+          .add(rightCounter.state.posn)
+          .divideScalar(2);
+        const centerCcw = ccwTowards(dancer.posn, center);
+        const centerward = (len: number) =>
+          center.clone().subtract(dancer.posn).normalize().multiplyScalar(len);
+
+        return moves(dancer, [
+          {
+            beats: 1,
+            x: dancer.posn.clone().add(centerward(0.3)),
+            ccw: centerCcw + Math.round(dancer.ccw - centerCcw),
+          },
+          {
+            beats: 1,
+            x: dancer.posn.clone().add(centerward(0.3)),
+            ccw: centerCcw + Math.round(dancer.ccw - centerCcw),
+          },
+          {
+            beats: 1,
+            ccw: centerCcw + Math.round(dancer.ccw - centerCcw),
+          },
+          {
+            beats: 1,
+            ccw: centerCcw + Math.round(dancer.ccw - centerCcw),
+          },
+        ]);
+      });
+    },
   };
 }
-export function petronellaKfs(
-  state: ByDancer<DancerState>,
-  {
-    withYour = ["partner", "neighbor"],
-  }: {
-    withYour?: [keyof DancerState["labels"], keyof DancerState["labels"]];
-  } = {}
-): ByDancer<List<DancerKeyframe>> {
-  return state.map((dancer, id) => {
-    const counter0 = state.get(dancer.labels[withYour[0]]!)!;
-    const counter1 = state.get(dancer.labels[withYour[1]]!)!;
-    // Sanity check it's a square:
-    if (counter0.labels[withYour[1]] !== counter1.labels[withYour[0]]) {
-      throw new Error(
-        `dancer ${id} has ${withYour[0]}=${dancer.labels[withYour[0]]} and ${
+
+export function vavg(
+  v1: Victor,
+  v2: Victor,
+  weights: [number, number] = [1, 1]
+): Victor {
+  return v1
+    .clone()
+    .multiplyScalar(weights[0])
+    .add(v2.clone().multiplyScalar(weights[1]))
+    .divideScalar(weights[0] + weights[1]);
+}
+
+export function petronellaSpin({
+  withYour = ["partner", "neighbor"],
+}: {
+  withYour?: [keyof DancerState["labels"], keyof DancerState["labels"]];
+} = {}): Subroutine {
+  return {
+    name: `petronella spin with your ${withYour[0]} and ${withYour[1]}`,
+    beats: 4,
+    buildKeyframes: (cur) => {
+      return cur.map((dancer, id) => {
+        const { leftCounter, rightCounter } = getTopoSquare(
+          cur,
+          id,
+          withYour[0],
           withYour[1]
-        }=${dancer.labels[withYour[1]]} but ${counter0}'s ${withYour[1]} is ${
-          counter0.labels[withYour[1]]
-        } while ${counter1}'s ${withYour[0]} is ${counter1.labels[withYour[0]]}`
-      );
-    }
-    const center = counter0.posn.clone().add(counter1.posn).divideScalar(2);
-    const centerCcw = ccwTowards(dancer.posn, center);
-    const centerward = (len: number) =>
-      center.clone().subtract(dancer.posn).normalize().multiplyScalar(len);
+        );
+        const center = vavg(leftCounter.state.posn, rightCounter.state.posn);
+        const centerCcw = ccwTowards(dancer.posn, center);
 
-    // We end up standing in either counter0 or counter1's spot.
-    // Find the angle from c0 to us to c1; if clockwise, we aim for c1's spot; else c0's.
-    const finalPosn = (() => {
-      const toCounter0 = counter0.posn.clone().subtract(dancer.posn);
-      const toCounter1 = counter1.posn.clone().subtract(dancer.posn);
-      return toCounter0.cross(toCounter1) > 0 ? counter0.posn : counter1.posn;
-    })();
-
-    return moves(dancer, [
-      {
-        beats: 1,
-        x: dancer.posn.clone().add(centerward(0.3)),
-        ccw: centerCcw + Math.round(dancer.ccw - centerCcw),
-      },
-      {
-        beats: 1,
-        x: dancer.posn.clone().add(centerward(0.3)),
-        ccw: centerCcw + Math.round(dancer.ccw - centerCcw),
-      },
-      {
-        beats: 1,
-        ccw: centerCcw + Math.round(dancer.ccw - centerCcw),
-      },
-      {
-        beats: 1,
-        ccw: centerCcw + Math.round(dancer.ccw - centerCcw),
-      },
-      {
-        beats: 4,
-        x: finalPosn,
-        ccw: centerCcw + Math.round(dancer.ccw - centerCcw) - 1 + 1 / 4,
-      },
-      // TODO: need dancers to know who their neighbors are
-      // { beats: 4, x: dancer.posn.clone().add((dancer.progressDirection.y>0)===(dancer.posn.x<0)) },
-    ]);
-  });
+        // debugger;
+        return moves(dancer, [
+          {
+            beats: 4,
+            x: rightCounter.state.posn,
+            ccw: centerCcw + Math.round(dancer.ccw - centerCcw) - 1 + 1 / 4,
+          },
+        ]);
+      });
+    },
+  };
 }
 
 export function balance({
@@ -473,19 +531,11 @@ export function balanceKfs(
     return moves(dancer, [
       {
         beats: 1,
-        x: dancer.posn
-          .clone()
-          .multiplyScalar(3)
-          .add(counterpart.posn)
-          .divideScalar(4),
+        x: vavg(dancer.posn, counterpart.posn, [3, 1]),
       },
       {
         beats: 1,
-        x: dancer.posn
-          .clone()
-          .multiplyScalar(3)
-          .add(counterpart.posn)
-          .divideScalar(4),
+        x: vavg(dancer.posn, counterpart.posn, [3, 1]),
       },
       { beats: 1 },
       { beats: 1 },
@@ -655,25 +705,53 @@ export function compose(
     if ("endThatMoveFacing" in piece) {
       res = fudgeFacing(res, piece.endThatMoveFacing);
     } else {
-      const newKfss = piece.buildKeyframes(cur);
-      res = res.map((oldKfs, id) => {
-        const newKfs = newKfss.get(id, List<DancerKeyframe>());
-        const newKfsBeats = newKfs.reduce((t, kf) => t + kf.beats, 0);
-        if (newKfsBeats > piece.beats) {
-          throw new Error(
-            `dancer ${id} has ${newKfsBeats} beats of keyframes to accomplish but subroutine has only ${piece.beats} beats`
-          );
-        }
-        if (newKfsBeats === piece.beats) {
-          return oldKfs.concat(newKfs);
-        }
-        return oldKfs.concat(newKfs).push({
-          beats: piece.beats - newKfsBeats,
-          end: oldKfs.concat(newKfs).last()!.end,
+      try {
+        const newKfss = piece.buildKeyframes(cur);
+        res = res.map((oldKfs, id) => {
+          const newKfs = newKfss.get(id, List<DancerKeyframe>());
+          const newKfsBeats = newKfs.reduce((t, kf) => t + kf.beats, 0);
+          if (newKfsBeats > piece.beats) {
+            throw new Error(
+              `dancer ${id} has ${newKfsBeats} beats of keyframes to accomplish but subroutine has only ${piece.beats} beats`
+            );
+          }
+          if (newKfsBeats === piece.beats) {
+            return oldKfs.concat(newKfs);
+          }
+          return oldKfs.concat(newKfs).push({
+            beats: piece.beats - newKfsBeats,
+            end: oldKfs.concat(newKfs).last()!.end,
+          });
         });
-      });
+      } catch (e) {
+        throw new CompositionError(errstr(e), res, piece);
+      }
     }
   }
 
   return res;
+}
+
+function errstr(e: unknown): string {
+  return e instanceof Error
+    ? e.message
+    : e instanceof Object
+    ? e.toString()
+    : JSON.stringify(e);
+}
+
+export class CompositionError extends Error {
+  partial: ByDancer<List<DancerKeyframe>>;
+  subroutine: Subroutine;
+
+  constructor(
+    message: string,
+    partial: ByDancer<List<DancerKeyframe>>,
+    subroutine: Subroutine
+  ) {
+    super(message);
+    this.name = "CompositionError";
+    this.partial = partial;
+    this.subroutine = subroutine;
+  }
 }
