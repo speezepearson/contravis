@@ -281,6 +281,7 @@ export function robinsChainAcrossKfs(
 export function formWaveKfs(
   state: ByDancer<DancerState>
 ): ByDancer<List<DancerKeyframe>> {
+  throw new Error("wave formation is buggy");
   return state.map((dancer) =>
     moves(dancer, [
       {
