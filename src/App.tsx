@@ -22,6 +22,10 @@ import {
   formWaveKfs,
   waveBalanceBellySlideKfs,
   DancerId,
+  petronellaKfs,
+  boxTheGnatKfs,
+  balanceKfs,
+  fudgeFacing,
 } from "./contra";
 
 const pxPerPace = 50;
@@ -117,8 +121,26 @@ function ContraDance() {
       List.of({ beats: 0, end: state })
     );
 
-    res = extendKeyframes(res, (cur) => swingKfs(cur));
-    res = extendKeyframes(res, (cur) => robinsChainAcrossKfs(cur));
+    res = extendKeyframes(res, (cur) =>
+      balanceKfs(cur, {
+        withYour: "neighbor",
+      })
+    );
+    res = extendKeyframes(res, (cur) =>
+      boxTheGnatKfs(cur, {
+        withYour: "neighbor",
+      })
+    );
+    for (let i = 0; i < 2; i++) {
+      res = extendKeyframes(res, (cur) => petronellaKfs(cur));
+    }
+    res = fudgeFacing(res, "neighborward");
+    res = extendKeyframes(res, (cur) =>
+      swingKfs(cur, { withYour: "neighbor" })
+    );
+    res = extendKeyframes(res, (cur) =>
+      robinsChainAcrossKfs(cur, { toYour: "partner" })
+    );
     res = extendKeyframes(res, (cur) => {
       return cur.map((dancer) => {
         if (dancer.role === ROBIN) return List();
@@ -179,6 +201,12 @@ function ContraDance() {
       }, 0) ?? 0;
 
   const anim: anime.AnimeInstance = useMemo(() => {
+    for (const [dancerId, dancer] of init.entries()) {
+      if (dancerRefs.get(dancerId)) {
+        anime.set(dancerRefs.get(dancerId)!, animeProps(dancer));
+      }
+    }
+
     const anim = anime.timeline({
       duration: beatsToMs(totalBeats),
       easing: "linear",
@@ -204,7 +232,7 @@ function ContraDance() {
     }
     anim.seek(beatsToMs(10));
     return anim;
-  }, [dancerRefs, keyframes, totalBeats]);
+  }, [init, dancerRefs, keyframes, totalBeats]);
 
   const prevAnim = useRef<anime.AnimeInstance | null>(null);
   useEffect(() => {

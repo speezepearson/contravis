@@ -48,6 +48,7 @@ describe("initImproper", () => {
             progressDirection: PD_UP,
             posn: new Victor(-1, 0),
             ccw: 1 / 4,
+            labels: { partner: "R0", neighbor: "R1" },
           },
         ],
         [
@@ -57,6 +58,7 @@ describe("initImproper", () => {
             progressDirection: PD_UP,
             posn: new Victor(1, 0),
             ccw: 1 / 4,
+            labels: { partner: "L0", neighbor: "L1" },
           },
         ],
         [
@@ -66,6 +68,7 @@ describe("initImproper", () => {
             progressDirection: PD_DOWN,
             posn: new Victor(1, 2),
             ccw: -1 / 4,
+            labels: { partner: "R1", neighbor: "R0" },
           },
         ],
         [
@@ -75,6 +78,7 @@ describe("initImproper", () => {
             progressDirection: PD_DOWN,
             posn: new Victor(-1, 2),
             ccw: -1 / 4,
+            labels: { partner: "L1", neighbor: "L0" },
           },
         ],
       ])
@@ -108,6 +112,7 @@ describe("initBeckett", () => {
             progressDirection: PD_UP,
             posn: new Victor(-1, 2),
             ccw: 0,
+            labels: { partner: "R0", neighbor: "R1" },
           },
         ],
         [
@@ -117,6 +122,7 @@ describe("initBeckett", () => {
             progressDirection: PD_UP,
             posn: new Victor(-1, 0),
             ccw: 0,
+            labels: { partner: "L0", neighbor: "L1" },
           },
         ],
         [
@@ -126,6 +132,7 @@ describe("initBeckett", () => {
             progressDirection: PD_DOWN,
             posn: new Victor(1, 0),
             ccw: 1 / 2,
+            labels: { partner: "R1", neighbor: "R0" },
           },
         ],
         [
@@ -135,6 +142,7 @@ describe("initBeckett", () => {
             progressDirection: PD_DOWN,
             posn: new Victor(1, 2),
             ccw: 1 / 2,
+            labels: { partner: "L1", neighbor: "L0" },
           },
         ],
       ])
@@ -152,6 +160,7 @@ describe("findPersonInDirection", () => {
           progressDirection: PD_UP,
           posn: new Victor(0, 0),
           ccw: 0,
+          labels: { partner: "Bob" },
         },
       ],
       [
@@ -161,6 +170,7 @@ describe("findPersonInDirection", () => {
           progressDirection: PD_UP,
           posn: new Victor(1, 0),
           ccw: 1 / 2,
+          labels: { partner: "Alice" },
         },
       ],
     ]);
@@ -224,7 +234,9 @@ describe("swingKfs", () => {
   test("smoke", () => {
     const state = initImproper(1);
     console.log("L0 starts at", state.get("L0"));
-    const end = swingKfs(state).map((kfs) => kfs.last()?.end);
+    const end = swingKfs(state, { withYour: "neighbor" }).map(
+      (kfs) => kfs.last()?.end
+    );
     expect(end.get("L0")).toMatchObject({
       posn: new Victor(-1, 2),
       ccw: -1,
@@ -245,14 +257,18 @@ describe("swingKfs", () => {
 
   test("throws if dancers are across the set", () => {
     const state = initBeckett(1);
-    expect(() => swingKfs(state)).toThrow(/across the set/);
+    expect(() => swingKfs(state, { withYour: "neighbor" })).toThrow(
+      /across the set/
+    );
   });
 });
 
 describe("robinsChainAcrossKfs", () => {
   test("smoke", () => {
     const state = initBeckett(1);
-    const end = robinsChainAcrossKfs(state).map((kfs) => kfs.last()?.end);
+    const end = robinsChainAcrossKfs(state, { toYour: "neighbor" }).map(
+      (kfs) => kfs.last()?.end
+    );
     expect(end.get("L0") ?? state.get("L0")).toEqual({
       ...state.get("L0"),
       ccw: state.get("L0")!.ccw + 1,

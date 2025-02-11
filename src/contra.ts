@@ -37,6 +37,12 @@ export interface DancerState {
   progressDirection: ProgressDirection;
   posn: Victor;
   ccw: CcwTurns;
+  labels: { partner: DancerId } & Partial<{
+    neighbor: DancerId;
+    prevNeighbor: DancerId;
+    nextNeighbor: DancerId; // TODO: how do these get assigned? Especially on the ends?
+    shadow: DancerId;
+  }>;
 }
 export type DancerKeyframe = { beats: number; end: DancerState };
 
@@ -81,41 +87,51 @@ export function ensureSymmetric(counterparts: ByDancer<DancerId>) {
 export function initImproper(nHandsFours: number): ByDancer<DancerState> {
   return Map(
     Array.from({ length: nHandsFours }).flatMap((_, h4i) => {
+      const [l1, r1, l2, r2] = [
+        `L${h4i * 2}`,
+        `R${h4i * 2}`,
+        `L${h4i * 2 + 1}`,
+        `R${h4i * 2 + 1}`,
+      ];
       return [
         [
-          `L${h4i * 2}`,
+          l1,
           {
             role: LARK,
             progressDirection: PD_UP,
             posn: new Victor(-1, h4i * 4),
             ccw: 1 / 4,
+            labels: { partner: r1, neighbor: r2 },
           },
         ],
         [
-          `R${h4i * 2}`,
+          r1,
           {
             role: ROBIN,
             progressDirection: PD_UP,
             posn: new Victor(1, h4i * 4),
             ccw: 1 / 4,
+            labels: { partner: l1, neighbor: l2 },
           },
         ],
         [
-          `L${h4i * 2 + 1}`,
+          l2,
           {
             role: LARK,
             progressDirection: PD_DOWN,
             posn: new Victor(1, h4i * 4 + 2),
             ccw: -1 / 4,
+            labels: { partner: r2, neighbor: r1 },
           },
         ],
         [
-          `R${h4i * 2 + 1}`,
+          r2,
           {
             role: ROBIN,
             progressDirection: PD_DOWN,
             posn: new Victor(-1, h4i * 4 + 2),
             ccw: -1 / 4,
+            labels: { partner: l2, neighbor: l1 },
           },
         ],
       ];
@@ -126,41 +142,51 @@ export function initImproper(nHandsFours: number): ByDancer<DancerState> {
 export function initBeckett(nHandsFours: number): ByDancer<DancerState> {
   return Map(
     Array.from({ length: nHandsFours }).flatMap((_, h4i) => {
+      const [l1, r1, l2, r2] = [
+        `L${h4i * 2}`,
+        `R${h4i * 2}`,
+        `L${h4i * 2 + 1}`,
+        `R${h4i * 2 + 1}`,
+      ];
       return [
         [
-          `L${h4i * 2}`,
+          l1,
           {
             role: LARK,
             progressDirection: PD_UP,
             posn: new Victor(-1, h4i * 4 + 2),
             ccw: 0,
+            labels: { partner: r1, neighbor: r2 },
           },
         ],
         [
-          `R${h4i * 2}`,
+          r1,
           {
             role: ROBIN,
             progressDirection: PD_UP,
             posn: new Victor(-1, h4i * 4),
             ccw: 0,
+            labels: { partner: l1, neighbor: l2 },
           },
         ],
         [
-          `L${h4i * 2 + 1}`,
+          l2,
           {
             role: LARK,
             progressDirection: PD_DOWN,
             posn: new Victor(1, h4i * 4),
             ccw: 1 / 2,
+            labels: { partner: r2, neighbor: r1 },
           },
         ],
         [
-          `R${h4i * 2 + 1}`,
+          r2,
           {
             role: ROBIN,
             progressDirection: PD_DOWN,
             posn: new Victor(1, h4i * 4 + 2),
             ccw: 1 / 2,
+            labels: { partner: l2, neighbor: l1 },
           },
         ],
       ];
@@ -169,19 +195,21 @@ export function initBeckett(nHandsFours: number): ByDancer<DancerState> {
 }
 
 export function swingKfs(
-  state: ByDancer<DancerState>
+  state: ByDancer<DancerState>,
+  { withYour }: { withYour: keyof DancerState["labels"] }
 ): ByDancer<List<DancerKeyframe>> {
-  const counterparts = findPersonInDirection(state, () => fwd(2));
-
   return state.map((dancer, id) => {
-    const counterpartId = counterparts.get(id);
+    const counterpartId = dancer.labels[withYour];
     if (!counterpartId) {
-      throw new Error(`dancer ${id} failed to find somebody to swing with`);
+      throw new Error(
+        `dancer ${id} failed to find their ${withYour} to swing with`
+      );
     }
     const counterpart = state.get(counterpartId)!;
+    // if (id === "L0") debugger;
     if (!(dancer.posn.x < 0 === counterpart.posn.x < 0)) {
       throw new Error(
-        `dancer ${id} wants to swing with ${counterpartId}, but they're across the set`
+        `dancer ${id} wants to swing with ${counterpartId}, but they're across the set (${dancer.posn} vs ${counterpart.posn})`
       );
     }
     if (counterpart.role === dancer.role) {
@@ -214,12 +242,9 @@ export function swingKfs(
 }
 
 export function robinsChainAcrossKfs(
-  state: ByDancer<DancerState>
+  state: ByDancer<DancerState>,
+  { toYour }: { toYour: keyof DancerState["labels"] }
 ): ByDancer<List<DancerKeyframe>> {
-  const robinOpposites = findPersonInDirection(state, ({ role }) =>
-    role === ROBIN ? fwd(2).add(partnerward({ role }, 2)) : null
-  );
-
   return state.map((dancer, id) => {
     if (dancer.role === LARK) {
       return moves(dancer, [
@@ -228,21 +253,28 @@ export function robinsChainAcrossKfs(
         { beats: 2, dccw: 1 },
       ]);
     } else {
-      const oppositeId = robinOpposites.get(id);
-      if (!oppositeId) {
+      const turnerId = dancer.labels[toYour];
+      if (!turnerId) {
         throw new Error(
-          `robin ${id} failed to find their opposite to chain with`
+          `robin ${id} failed to find their ${toYour} to chain with`
         );
       }
-      const opposite = state.get(oppositeId)!;
-
-      // TODO: verify that they're chaining across the set, not up and down it
+      const turner = state.get(turnerId)!;
+      if (turner.posn.x < 0 === dancer.posn.x < 0) {
+        throw new Error(
+          `robin ${id} wants to chain to ${turnerId}, but they're not across the set`
+        );
+      }
 
       return moves(dancer, [
         { beats: 2, dx: fwd(1).add(left(1.3)), dccw: 1 / 4 },
         { beats: 2, dx: fwd(2).add(left(1)), dccw: 0 },
         { beats: 2, dx: fwd(2.5).add(left(1.5)), dccw: 1 / 4 },
-        { beats: 2, x: opposite.posn, dccw: 1 / 2 },
+        {
+          beats: 2,
+          x: turner.posn.clone().addScalarY(turner.posn.x < 0 ? -2 : 2),
+          dccw: 1 / 2,
+        },
       ]);
     }
   });
@@ -293,6 +325,141 @@ export function waveBalanceBellySlideKfs(
         { beats: 4, dx: left(), dccw: 1 },
       ])
     );
+  });
+}
+
+export function petronellaKfs(
+  state: ByDancer<DancerState>,
+  {
+    withYour,
+  }: {
+    withYour: [keyof DancerState["labels"], keyof DancerState["labels"]];
+  } = {
+    withYour: ["partner", "neighbor"],
+  }
+): ByDancer<List<DancerKeyframe>> {
+  return state.map((dancer, id) => {
+    const counter0 = state.get(dancer.labels[withYour[0]]!)!;
+    const counter1 = state.get(dancer.labels[withYour[1]]!)!;
+    // Sanity check it's a square:
+    if (counter0.labels[withYour[1]] !== counter1.labels[withYour[0]]) {
+      throw new Error(
+        `dancer ${id} has ${withYour[0]}=${dancer.labels[withYour[0]]} and ${
+          withYour[1]
+        }=${dancer.labels[withYour[1]]} but ${counter0}'s ${withYour[1]} is ${
+          counter0.labels[withYour[1]]
+        } while ${counter1}'s ${withYour[0]} is ${counter1.labels[withYour[0]]}`
+      );
+    }
+    const center = counter0.posn.clone().add(counter1.posn).divideScalar(2);
+    const centerCcw =
+      Math.atan2(center.y - dancer.posn.y, center.x - dancer.posn.x) /
+      (2 * Math.PI);
+    const centerward = (len: number) =>
+      center.clone().subtract(dancer.posn).normalize().multiplyScalar(len);
+
+    // We end up standing in either counter0 or counter1's spot.
+    // Find the angle from c0 to us to c1; if clockwise, we aim for c1's spot; else c0's.
+    const finalPosn = (() => {
+      const toCounter0 = counter0.posn.clone().subtract(dancer.posn);
+      const toCounter1 = counter1.posn.clone().subtract(dancer.posn);
+      return toCounter0.cross(toCounter1) > 0 ? counter0.posn : counter1.posn;
+    })();
+
+    return moves(dancer, [
+      {
+        beats: 1,
+        x: dancer.posn.clone().add(centerward(0.3)),
+        ccw: centerCcw + Math.round(dancer.ccw - centerCcw),
+      },
+      {
+        beats: 1,
+        x: dancer.posn.clone().add(centerward(0.3)),
+        ccw: centerCcw + Math.round(dancer.ccw - centerCcw),
+      },
+      {
+        beats: 1,
+        ccw: centerCcw + Math.round(dancer.ccw - centerCcw),
+      },
+      {
+        beats: 1,
+        ccw: centerCcw + Math.round(dancer.ccw - centerCcw),
+      },
+      {
+        beats: 4,
+        x: finalPosn,
+        ccw: centerCcw + Math.round(dancer.ccw - centerCcw) - 1 + 1 / 4,
+      },
+      // TODO: need dancers to know who their neighbors are
+      // { beats: 4, x: dancer.posn.clone().add((dancer.progressDirection.y>0)===(dancer.posn.x<0)) },
+    ]);
+  });
+}
+
+export function balanceKfs(
+  state: ByDancer<DancerState>,
+  { withYour }: { withYour: keyof DancerState["labels"] }
+): ByDancer<List<DancerKeyframe>> {
+  return state.map((dancer, id) => {
+    const counterpartId = dancer.labels[withYour];
+    if (!counterpartId) {
+      throw new Error(
+        `dancer ${id} failed to find their ${withYour} to box with`
+      );
+    }
+    const counterpart = state.get(counterpartId)!;
+    return moves(dancer, [
+      {
+        beats: 1,
+        x: dancer.posn
+          .clone()
+          .multiplyScalar(3)
+          .add(counterpart.posn)
+          .divideScalar(4),
+      },
+      {
+        beats: 1,
+        x: dancer.posn
+          .clone()
+          .multiplyScalar(3)
+          .add(counterpart.posn)
+          .divideScalar(4),
+      },
+      { beats: 1 },
+      { beats: 1 },
+    ]);
+  });
+}
+
+export function boxTheGnatKfs(
+  state: ByDancer<DancerState>,
+  { withYour }: { withYour: keyof DancerState["labels"] }
+): ByDancer<List<DancerKeyframe>> {
+  return state.map((dancer, id) => {
+    const counterpartId = dancer.labels[withYour];
+    if (!counterpartId) {
+      throw new Error(
+        `dancer ${id} failed to find their ${withYour} to box with`
+      );
+    }
+    const counterpart = state.get(counterpartId)!;
+    const finalCcw =
+      Math.atan2(
+        counterpart.posn.y - dancer.posn.y,
+        counterpart.posn.x - dancer.posn.x
+      ) /
+        (2 * Math.PI) +
+      (dancer.role === LARK ? -1 / 4 : 1 / 4);
+    return moves(dancer, [
+      {
+        beats: 4,
+        x: counterpart.posn,
+        ccw:
+          finalCcw +
+          Math.round(dancer.ccw - finalCcw) +
+          (dancer.role === ROBIN ? 1 : 0),
+      },
+    ]);
   });
 }
 
@@ -386,4 +553,59 @@ export function moves(
       dccw,
     }),
   }));
+}
+
+export function fudgeFacing(
+  keyframes: ByDancer<List<DancerKeyframe>>,
+  facing:
+    | "progress"
+    | "antiprogress"
+    | "across"
+    | "partnerward"
+    | "neighborward"
+): ByDancer<List<DancerKeyframe>> {
+  return keyframes.map((kfs) => {
+    const unfudged = kfs.last()!;
+    const wantCcw = (() => {
+      switch (facing) {
+        case "progress":
+          return unfudged.end.progressDirection.y > 0 ? 1 / 4 : -1 / 4;
+        case "antiprogress":
+          return unfudged.end.progressDirection.y > 0 ? -1 / 4 : 1 / 4;
+        case "across":
+          return unfudged.end.posn.x < 0 ? 0 : 1 / 2;
+        case "partnerward": {
+          const partnerPosn = keyframes
+            .get(unfudged.end.labels.partner)!
+            .last()!.end.posn;
+          return (
+            Math.atan2(
+              partnerPosn.y - unfudged.end.posn.y,
+              partnerPosn.x - unfudged.end.posn.x
+            ) /
+            (2 * Math.PI)
+          );
+        }
+        case "neighborward": {
+          const neighborPosn = keyframes
+            .get(unfudged.end.labels.neighbor!)!
+            .last()!.end.posn;
+          return (
+            Math.atan2(
+              neighborPosn.y - unfudged.end.posn.y,
+              neighborPosn.x - unfudged.end.posn.x
+            ) /
+            (2 * Math.PI)
+          );
+        }
+      }
+    })();
+    return kfs.set(kfs.size - 1, {
+      ...unfudged,
+      end: {
+        ...unfudged.end,
+        ccw: wantCcw + Math.round(unfudged.end.ccw - wantCcw),
+      },
+    });
+  });
 }
