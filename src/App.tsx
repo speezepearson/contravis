@@ -19,6 +19,9 @@ import {
   right,
   left,
   bak,
+  formWaveKfs,
+  waveBalanceBellySlideKfs,
+  DancerId,
 } from "./contra";
 
 const pxPerPace = 50;
@@ -110,9 +113,11 @@ function ContraDance() {
 
   const init = useMemo(() => initImproper(4), []);
   const keyframes: ByDancer<List<DancerKeyframe>> = useMemo(() => {
-    let res: ByDancer<List<DancerKeyframe>> = init.map(() => List());
+    let res: ByDancer<List<DancerKeyframe>> = init.map((state) =>
+      List.of({ beats: 0, end: state })
+    );
 
-    res = extendKeyframes(res, (cur) => swingKfs(cur), { fallback: init });
+    res = extendKeyframes(res, (cur) => swingKfs(cur));
     res = extendKeyframes(res, (cur) => robinsChainAcrossKfs(cur));
     res = extendKeyframes(res, (cur) => {
       return cur.map((dancer) => {
@@ -147,6 +152,8 @@ function ContraDance() {
         ]);
       });
     });
+    res = extendKeyframes(res, (cur) => formWaveKfs(cur));
+    res = extendKeyframes(res, (cur) => waveBalanceBellySlideKfs(cur));
     return res;
   }, [init]);
 
@@ -172,12 +179,6 @@ function ContraDance() {
       }, 0) ?? 0;
 
   const anim: anime.AnimeInstance = useMemo(() => {
-    for (const [dancerId, dancer] of init.entries()) {
-      if (dancerRefs.get(dancerId)) {
-        anime.set(dancerRefs.get(dancerId)!, animeProps(dancer));
-      }
-    }
-
     const anim = anime.timeline({
       duration: beatsToMs(totalBeats),
       easing: "linear",
@@ -203,7 +204,7 @@ function ContraDance() {
     }
     anim.seek(beatsToMs(10));
     return anim;
-  }, [init, dancerRefs, keyframes, totalBeats]);
+  }, [dancerRefs, keyframes, totalBeats]);
 
   const prevAnim = useRef<anime.AnimeInstance | null>(null);
   useEffect(() => {
@@ -215,12 +216,6 @@ function ContraDance() {
   }, [anim]);
 
   const [beat, setBeat] = useState(0);
-  useEffect(() => {
-    if (Math.abs(anim.progress - 100 * (beat / totalBeats)) > 0.1) {
-      // rounding errors
-      anim.seek(anim.duration * (beat / totalBeats));
-    }
-  }, [beat, anim, totalBeats]);
 
   // const curKeyframe = useMemo(() => {
   //   let beatsSoFar = 0;
@@ -232,6 +227,23 @@ function ContraDance() {
   //   }
   //   return keyframes.last()!;
   // }, [keyframes, beat]);
+
+  const [focusedDancerId, setFocusedDancerId] = useState<DancerId | null>(null);
+  const focusedDancerBoundingKeyframes:
+    | [DancerKeyframe | null, DancerKeyframe | null]
+    | null = useMemo(() => {
+    if (!focusedDancerId) return null;
+    let t = 0;
+    let prev = null;
+    for (const kf of keyframes.get(focusedDancerId, [])) {
+      if (t + kf.beats > beat) {
+        return [prev, kf];
+      }
+      t += kf.beats;
+      prev = kf;
+    }
+    return [prev, null];
+  }, [focusedDancerId, keyframes, beat]);
 
   return (
     <>
@@ -245,15 +257,27 @@ function ContraDance() {
         step="0.1"
         value={beat}
         onChange={(e) => {
-          setBeat(parseFloat(e.target.value));
+          const newBeat = parseFloat(e.target.value);
+          setBeat(newBeat);
+          anim.seek(anim.duration * (newBeat / totalBeats));
         }}
       />
       <div>
         {beat.toFixed(0)} {/*curKeyframe.happening*/}
       </div>
+      {focusedDancerId && (
+        <div>
+          <div>Focused Dancer: {focusedDancerId}</div>
+          <div>Keyframes: {JSON.stringify(focusedDancerBoundingKeyframes)}</div>
+        </div>
+      )}
       <div style={{ position: "relative" }}>
         {init.entrySeq().map(([id, dancer]) => (
-          <div key={id} style={{ position: "absolute", top: 0, left: 0 }}>
+          <div
+            key={id}
+            style={{ position: "absolute", top: 0, left: 0 }}
+            onClick={() => setFocusedDancerId(id)}
+          >
             {dancer.role === LARK ? (
               <Lark ref={setDancerRef.get(id)} label={id} />
             ) : (

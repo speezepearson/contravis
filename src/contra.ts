@@ -25,8 +25,8 @@ export const left = (len: number = 1) => new Victor(0, len);
 export const right = (len: number = 1) => new Victor(0, -len);
 export const partnerward = ({ role }: { role: Role }, len: number = 1) =>
   role === LARK ? right(len) : left(len);
-export const upSet = (len: number = 1) => new Victor(0, len);
-export const downSet = (len: number = 1) => new Victor(0, -len);
+export const progressward = (dancer: DancerState, len: number = 1) =>
+  dancer.progressDirection.y > 0 ? new Victor(0, len) : new Victor(0, -len);
 export const crossSet = (
   dancer: Pick<DancerState, "ccw" | "posn">,
   len: number = 1
@@ -248,21 +248,69 @@ export function robinsChainAcrossKfs(
   });
 }
 
-export function getCurState(
-  kfs: ByDancer<List<DancerKeyframe>>,
-  fallback: ByDancer<DancerState>
-): ByDancer<DancerState> {
-  return kfs.map((kfs, id) => {
-    return kfs.last()?.end ?? fallback.get(id)!;
+export function formWaveKfs(
+  state: ByDancer<DancerState>
+): ByDancer<List<DancerKeyframe>> {
+  return state.map((dancer) =>
+    moves(dancer, [
+      {
+        beats: 4,
+        x: dancer.posn
+          .clone()
+          .add(dancer.progressDirection.clone().multiplyScalar(3 / 4))
+          .add(
+            dancer.progressDirection
+              .clone()
+              .multiplyScalar(1 / 2)
+              .rotate(Math.PI / 2)
+          ),
+        ccw:
+          (dancer.progressDirection.y > 0 ? 1 / 4 : -1 / 4) +
+          Math.round(
+            dancer.ccw - (dancer.progressDirection.y > 0 ? 1 / 4 : -1 / 4)
+          ),
+      },
+    ])
+  );
+}
+
+export function waveBalanceBellySlideKfs(
+  state: ByDancer<DancerState>
+): ByDancer<List<DancerKeyframe>> {
+  return state.map((dancer) => {
+    return moves(dancer, [
+      { beats: 1, dx: right(0.2) },
+      { beats: 1, dx: right(0.2) },
+      { beats: 1, dx: left(0.2) },
+      { beats: 1, dx: left(0.2) },
+      { beats: 4, dx: right(), dccw: -1 },
+    ]).concat(
+      moves(move(dancer, { dx: right(), dccw: -1 }), [
+        { beats: 1, dx: left(0.2) },
+        { beats: 1, dx: left(0.2) },
+        { beats: 1, dx: right(0.2) },
+        { beats: 1, dx: right(0.2) },
+        { beats: 4, dx: left(), dccw: 1 },
+      ])
+    );
   });
+}
+
+export function getCurState(
+  kfs: ByDancer<List<DancerKeyframe>>
+): ByDancer<DancerState> {
+  return kfs
+    .map((kfs) => {
+      return kfs.last()?.end;
+    })
+    .filter((dancer) => dancer !== undefined);
 }
 
 export function extendKeyframes(
   prev: ByDancer<List<DancerKeyframe>>,
-  next: (cur: ByDancer<DancerState>) => ByDancer<List<DancerKeyframe>>,
-  { fallback }: { fallback?: ByDancer<DancerState> } = {}
+  next: (cur: ByDancer<DancerState>) => ByDancer<List<DancerKeyframe>>
 ): ByDancer<List<DancerKeyframe>> {
-  const cur = getCurState(prev, fallback!);
+  const cur = getCurState(prev);
   const kfs = addRestKeyframes(cur, next(cur));
   return prev.map((prev, id) => prev.concat(kfs.get(id, List())));
 }
