@@ -7,15 +7,18 @@ import { HTMLProps, useEffect, useMemo, useRef, useState } from "react";
 import {
   ByDancer,
   DancerState,
-  findPersonInDirection,
-  fwd,
   initImproper,
-  Keyframe,
+  DancerKeyframe,
   LARK,
-  partnerward,
-  ROBIN,
   robinsChainAcrossKfs,
   swingKfs,
+  fwd,
+  ROBIN,
+  extendKeyframes,
+  moves,
+  right,
+  left,
+  bak,
 } from "./contra";
 
 const pxPerPace = 50;
@@ -96,7 +99,7 @@ function animeProps(dancer: DancerState) {
   return {
     translateX: dancer.posn.y * pxPerPace,
     translateY: dancer.posn.x * pxPerPace + 2 * pxPerPace,
-    rotate: `${-dancer.facing + Math.PI / 2}rad`,
+    rotate: `${2 * Math.PI * (-dancer.ccw + 1 / 4)}rad`,
   };
 }
 
@@ -106,77 +109,75 @@ function ContraDance() {
   );
 
   const init = useMemo(() => initImproper(4), []);
-  const keyframes = useMemo(() => {
-    let res: List<Keyframe & { happening: string }> = List.of();
-    res = res.concat(
-      swingKfs(init).map((kf) => ({
-        happening: "neighbor swing",
-        ...kf,
-      }))
-    );
-    res = res.concat(
-      robinsChainAcrossKfs(res.last()!.end).map((kf) => ({
-        happening: "robins chain across",
-        ...kf,
-      }))
-    );
-    const counterlarks = findPersonInDirection(res.last()!.end, ({ role }) =>
-      role === LARK ? fwd(2).add(partnerward({ role }, 2)) : null
-    );
-    res = res.push({
-      happening: "larks allemande left 1 1/2",
-      beats: 8,
-      end: res.last()!.end.map((dancer, id) => ({
-        ...dancer,
-        posn:
-          dancer.role === ROBIN
-            ? dancer.posn
-            : res.last()!.end.get(counterlarks.get(id)!)!.posn,
-        facing:
-          dancer.role === ROBIN
-            ? dancer.facing
-            : res.last()!.end.get(counterlarks.get(id)!)!.facing,
-      })),
+  const keyframes: ByDancer<List<DancerKeyframe>> = useMemo(() => {
+    let res: ByDancer<List<DancerKeyframe>> = init.map(() => List());
+
+    res = extendKeyframes(res, (cur) => swingKfs(cur), { fallback: init });
+    res = extendKeyframes(res, (cur) => robinsChainAcrossKfs(cur));
+    res = extendKeyframes(res, (cur) => {
+      return cur.map((dancer) => {
+        if (dancer.role === ROBIN) return List();
+        return moves(dancer, [
+          {
+            beats: 8 / 6,
+            dx: fwd().add(right()).add(right(0.3)),
+            dccw: 0,
+          },
+          {
+            beats: 8 / 6,
+            dx: fwd().add(right()).add(fwd(0.3)),
+            dccw: 1 / 4,
+          },
+          {
+            beats: 8 / 6,
+            dx: fwd().add(right()).add(left(0.3)),
+            dccw: 2 / 4,
+          },
+          {
+            beats: 8 / 6,
+            dx: fwd().add(right()).add(bak(0.3)),
+            dccw: 3 / 4,
+          },
+          {
+            beats: 8 / 6,
+            dx: fwd().add(right()).add(right(0.3)),
+            dccw: 4 / 4,
+          },
+          { beats: 8 / 6, dx: fwd(2).add(right(2)), dccw: 6 / 4 },
+        ]);
+      });
     });
-    res = res.push({
-      happening: "turn",
-      beats: 1,
-      end: res.last()!.end.map((dancer) => ({
-        ...dancer,
-        facing: dancer.facing + (Math.PI / 2) * (dancer.role === LARK ? -1 : 1),
-      })),
-    });
-    res = res.concat(
-      swingKfs(res.last()!.end, { beats: 3 }).map((kf) => ({
-        happening: "neighbor swing",
-        ...kf,
-      }))
-    );
     return res;
   }, [init]);
 
   const setDancerRef = useMemo(
     () =>
       Map(
-        keyframes
-          .first()!
-          .end.keySeq()
-          .map((id) => [
-            id,
-            (el: SVGSVGElement | null) => {
-              setDancerRefs((rs) => rs.set(id, el));
-            },
-          ])
+        init.keySeq().map((id) => [
+          id,
+          (el: SVGSVGElement | null) => {
+            setDancerRefs((rs) => rs.set(id, el));
+          },
+        ])
       ),
-    [keyframes]
+    [init]
   );
 
-  const totalBeats = useMemo(
-    () => keyframes.reduce((b, { beats }) => b + beats, 0),
-    [keyframes]
-  );
+  const totalBeats =
+    keyframes
+      .valueSeq()
+      .first()
+      ?.reduce((acc, kf) => {
+        return acc + kf.beats;
+      }, 0) ?? 0;
 
-  const anim = useMemo(() => {
+  const anim: anime.AnimeInstance = useMemo(() => {
+    for (const [dancerId, dancer] of init.entries()) {
+      if (dancerRefs.get(dancerId)) {
+        anime.set(dancerRefs.get(dancerId)!, animeProps(dancer));
+      }
+    }
+
     const anim = anime.timeline({
       duration: beatsToMs(totalBeats),
       easing: "easeInOutSine",
@@ -186,26 +187,21 @@ function ContraDance() {
       },
     });
 
-    for (const [dancerId, dancer] of init.entries()) {
-      if (dancerRefs.get(dancerId)) {
-        anime.set(dancerRefs.get(dancerId)!, animeProps(dancer));
-      }
+    for (const [id, kfs] of keyframes.entries()) {
+      anim.add(
+        {
+          targets: dancerRefs.get(id),
+          keyframes: kfs
+            .map((kf) => ({
+              ...animeProps(kf.end),
+              duration: beatsToMs(kf.beats),
+            }))
+            .toArray(),
+        },
+        0
+      );
     }
-
-    let lastBeat = 0;
-    for (const [, keyframe] of keyframes.entries()) {
-      for (const [dancerId, dancer] of keyframe.end.entries()) {
-        anim.add(
-          {
-            targets: dancerRefs.get(dancerId),
-            ...animeProps(dancer),
-            duration: beatsToMs(keyframe.beats),
-          },
-          beatsToMs(lastBeat)
-        );
-      }
-      lastBeat += keyframe.beats;
-    }
+    anim.seek(beatsToMs(10));
     return anim;
   }, [init, dancerRefs, keyframes, totalBeats]);
 
@@ -226,16 +222,16 @@ function ContraDance() {
     }
   }, [beat, anim, totalBeats]);
 
-  const curKeyframe = useMemo(() => {
-    let beatsSoFar = 0;
-    for (const keyframe of keyframes) {
-      beatsSoFar += keyframe.beats;
-      if (beatsSoFar > beat) {
-        return keyframe;
-      }
-    }
-    return keyframes.last()!;
-  }, [keyframes, beat]);
+  // const curKeyframe = useMemo(() => {
+  //   let beatsSoFar = 0;
+  //   for (const keyframe of keyframes) {
+  //     beatsSoFar += keyframe.beats;
+  //     if (beatsSoFar > beat) {
+  //       return keyframe;
+  //     }
+  //   }
+  //   return keyframes.last()!;
+  // }, [keyframes, beat]);
 
   return (
     <>
@@ -253,21 +249,18 @@ function ContraDance() {
         }}
       />
       <div>
-        {beat.toFixed(0)} {curKeyframe.happening}
+        {beat.toFixed(0)} {/*curKeyframe.happening*/}
       </div>
       <div style={{ position: "relative" }}>
-        {keyframes
-          .first()!
-          .end.entrySeq()
-          .map(([id, dancer]) => (
-            <div key={id} style={{ position: "absolute", top: 0, left: 0 }}>
-              {dancer.role === LARK ? (
-                <Lark ref={setDancerRef.get(id)} label={id} />
-              ) : (
-                <Robin ref={setDancerRef.get(id)} label={id} />
-              )}
-            </div>
-          ))}
+        {init.entrySeq().map(([id, dancer]) => (
+          <div key={id} style={{ position: "absolute", top: 0, left: 0 }}>
+            {dancer.role === LARK ? (
+              <Lark ref={setDancerRef.get(id)} label={id} />
+            ) : (
+              <Robin ref={setDancerRef.get(id)} label={id} />
+            )}
+          </div>
+        ))}
       </div>
     </>
   );

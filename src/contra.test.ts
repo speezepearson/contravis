@@ -11,11 +11,11 @@ import {
   swingKfs,
   robinsChainAcrossKfs,
   DancerState,
+  PD_UP,
+  PD_DOWN,
 } from "./contra";
 import { Map } from "immutable";
 import Victor from "victor";
-
-const PI = Math.PI;
 
 describe("initImproper", () => {
   test("gives right dancer ids", () => {
@@ -45,36 +45,36 @@ describe("initImproper", () => {
           "L0",
           {
             role: LARK,
-            progressDirection: "up",
+            progressDirection: PD_UP,
             posn: new Victor(-1, 0),
-            facing: PI / 2,
+            ccw: 1 / 4,
           },
         ],
         [
           "R0",
           {
             role: ROBIN,
-            progressDirection: "up",
+            progressDirection: PD_UP,
             posn: new Victor(1, 0),
-            facing: PI / 2,
+            ccw: 1 / 4,
           },
         ],
         [
           "L1",
           {
             role: LARK,
-            progressDirection: "down",
+            progressDirection: PD_DOWN,
             posn: new Victor(1, 2),
-            facing: -PI / 2,
+            ccw: -1 / 4,
           },
         ],
         [
           "R1",
           {
             role: ROBIN,
-            progressDirection: "down",
+            progressDirection: PD_DOWN,
             posn: new Victor(-1, 2),
-            facing: -PI / 2,
+            ccw: -1 / 4,
           },
         ],
       ])
@@ -105,36 +105,36 @@ describe("initBeckett", () => {
           "L0",
           {
             role: LARK,
-            progressDirection: "up",
+            progressDirection: PD_UP,
             posn: new Victor(-1, 2),
-            facing: 0,
+            ccw: 0,
           },
         ],
         [
           "R0",
           {
             role: ROBIN,
-            progressDirection: "up",
+            progressDirection: PD_UP,
             posn: new Victor(-1, 0),
-            facing: 0,
+            ccw: 0,
           },
         ],
         [
           "L1",
           {
             role: LARK,
-            progressDirection: "down",
+            progressDirection: PD_DOWN,
             posn: new Victor(1, 0),
-            facing: PI,
+            ccw: 1 / 2,
           },
         ],
         [
           "R1",
           {
             role: ROBIN,
-            progressDirection: "down",
+            progressDirection: PD_DOWN,
             posn: new Victor(1, 2),
-            facing: PI,
+            ccw: 1 / 2,
           },
         ],
       ])
@@ -149,18 +149,18 @@ describe("findPersonInDirection", () => {
         "Alice",
         {
           role: ROBIN,
-          progressDirection: "up",
+          progressDirection: PD_UP,
           posn: new Victor(0, 0),
-          facing: 0,
+          ccw: 0,
         },
       ],
       [
         "Bob",
         {
           role: LARK,
-          progressDirection: "up",
+          progressDirection: PD_UP,
           posn: new Victor(1, 0),
-          facing: PI,
+          ccw: 1 / 2,
         },
       ],
     ]);
@@ -223,23 +223,23 @@ describe("findPersonInDirection", () => {
 describe("swingKfs", () => {
   test("smoke", () => {
     const state = initImproper(1);
-    const kfs = swingKfs(state);
-    const { end } = kfs.last()!;
+    console.log("L0 starts at", state.get("L0"));
+    const end = swingKfs(state).map((kfs) => kfs.last()?.end);
     expect(end.get("L0")).toMatchObject({
       posn: new Victor(-1, 2),
-      facing: 0,
+      ccw: -1,
     });
     expect(end.get("R0")).toMatchObject({
       posn: new Victor(1, 2),
-      facing: PI,
+      ccw: -3 / 2,
     });
     expect(end.get("L1")).toMatchObject({
       posn: new Victor(1, 0),
-      facing: PI,
+      ccw: -3 / 2,
     });
     expect(end.get("R1")).toMatchObject({
       posn: new Victor(-1, 0),
-      facing: 0,
+      ccw: -2,
     });
   });
 
@@ -252,18 +252,23 @@ describe("swingKfs", () => {
 describe("robinsChainAcrossKfs", () => {
   test("smoke", () => {
     const state = initBeckett(1);
-    const kfs = robinsChainAcrossKfs(state);
-    const { end } = kfs.last()!;
-    expect(end.get("L0")).toEqual(state.get("L0"));
-    expect(end.get("L1")).toEqual(state.get("L1"));
+    const end = robinsChainAcrossKfs(state).map((kfs) => kfs.last()?.end);
+    expect(end.get("L0") ?? state.get("L0")).toEqual({
+      ...state.get("L0"),
+      ccw: state.get("L0")!.ccw + 1,
+    });
+    expect(end.get("L1") ?? state.get("L1")).toEqual({
+      ...state.get("L1"),
+      ccw: state.get("L1")!.ccw + 1,
+    });
 
     expect(end.get("R0")).toMatchObject({
       posn: state.get("R1")!.posn,
-      facing: state.get("R1")!.facing,
+      ccw: state.get("R0")!.ccw + 1 / 2,
     });
     expect(end.get("R1")).toMatchObject({
       posn: state.get("R0")!.posn,
-      facing: state.get("R0")!.facing,
+      ccw: state.get("R1")!.ccw + 1 / 2,
     });
   });
 });
