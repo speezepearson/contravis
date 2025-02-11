@@ -605,6 +605,121 @@ export function rightLeftThrough(): Subroutine {
   };
 }
 
+export function larksRollAway({
+  your,
+}: {
+  your: keyof DancerState["labels"];
+}): Subroutine {
+  return {
+    name: `larks roll away your ${your}`,
+    beats: 4,
+    buildKeyframes: (cur) =>
+      cur.map((dancer, id) => {
+        const counterpartId = dancer.labels[your];
+        if (!counterpartId) {
+          throw new Error(
+            `dancer ${id} failed to find their ${your} to roll away with`
+          );
+        }
+        const counterpart = cur.get(counterpartId)!;
+        return moves(dancer, [
+          {
+            beats: 4,
+            x: counterpart.posn,
+            dccw: dancer.role === LARK ? 0 : -1,
+          },
+        ]);
+      }),
+  };
+}
+
+function mathmod(a: number, b: number) {
+  return ((a % b) + b) % b;
+}
+
+export function circle({
+  handedness,
+  spots,
+  withYour = ["partner", "neighbor"],
+}: {
+  handedness: "left" | "right";
+  spots: number;
+  withYour: [keyof DancerState["labels"], keyof DancerState["labels"]];
+}): Subroutine {
+  return {
+    name: `circle ${handedness} ${spots} spots with your ${withYour[0]} and ${withYour[1]}`,
+    beats: 8,
+    buildKeyframes: (cur) =>
+      cur.map((dancer, id) => {
+        const { leftCounter, rightCounter, opposite } = getTopoSquare(
+          cur,
+          id,
+          withYour[0],
+          withYour[1]
+        );
+
+        return moves(
+          dancer,
+          Array.from({ length: spots }, (_, i) => i + 1).map((spotInd) => ({
+            beats: 8 / spots,
+            x: [dancer, leftCounter.state, opposite.state, rightCounter.state][
+              mathmod(spotInd * (handedness === "left" ? 1 : -1), 4)
+            ].posn,
+            dccw: (handedness === "left" ? -1 : 1) * (spotInd / 4),
+          }))
+        );
+      }),
+  };
+}
+
+export function passThrough(): Subroutine {
+  return {
+    name: `pass through`,
+    beats: 4,
+    buildKeyframes: (cur) =>
+      cur.map((dancer) =>
+        moves(dancer, [
+          { beats: 2, dx: fwd(1).add(left(0.3)) },
+          { beats: 2, dx: fwd(2) },
+        ])
+      ),
+  };
+}
+
+export function doSiDo1(): Subroutine {
+  return {
+    name: `do si do`,
+    beats: 8,
+    buildKeyframes: (cur) =>
+      cur.map((dancer) =>
+        moves(dancer, [
+          { beats: 2, dx: fwd(1).add(left(0.3)) },
+          { beats: 2, dx: fwd(2) },
+          { beats: 2, dx: fwd(1).add(right(0.3)) },
+          { beats: 2 },
+        ])
+      ),
+  };
+}
+
+export function doSiDo112(): Subroutine {
+  return {
+    name: `do si do 1 1/2`,
+    beats: 12,
+    buildKeyframes: (cur) =>
+      cur.map((dancer) =>
+        moves(dancer, [
+          { beats: 2, dx: fwd(1).add(left(0.3)) },
+          { beats: 2, dx: fwd(2) },
+          { beats: 2, dx: fwd(1).add(right(0.3)) },
+          { beats: 2 },
+          { beats: 2, dx: fwd(1).add(left(0.3)) },
+          { beats: 2, dx: fwd(2) },
+        ])
+      ),
+  };
+}
+
 export function getCurState(
   kfs: ByDancer<List<DancerKeyframe>>
 ): ByDancer<DancerState> {
@@ -715,7 +830,10 @@ export function fudgeFacing(
   });
 }
 
-export type Call = Subroutine | { endThatMoveFacing: InstructionDir };
+export type Call =
+  | Subroutine
+  | { endThatMoveFacing: InstructionDir }
+  | { youAreNowFacingYourNewNeighbor: true };
 
 export function compose(
   init: ByDancer<DancerState>,
@@ -729,6 +847,18 @@ export function compose(
     const cur = res.size === 0 ? init : getCurState(res);
     if ("endThatMoveFacing" in piece) {
       res = fudgeFacing(res, piece.endThatMoveFacing);
+    } else if ("youAreNowFacingYourNewNeighbor" in piece) {
+      const newNeighbors = findPersonInDirection(cur, () => fwd(2));
+      res = res.map((kfs, id) => {
+        const dancer = cur.get(id)!;
+        return kfs.push({
+          beats: 0,
+          end: {
+            ...dancer,
+            labels: { ...dancer.labels, neighbor: newNeighbors.get(id)! },
+          },
+        });
+      });
     } else {
       try {
         const newKfss = piece.buildKeyframes(cur);

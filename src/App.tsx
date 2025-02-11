@@ -34,6 +34,11 @@ import {
   CompositionError,
   rightLeftThrough,
   Call,
+  larksRollAway,
+  circle,
+  passThrough,
+  doSiDo1,
+  doSiDo112,
 } from "./contra";
 
 const pxPerPace = 50;
@@ -326,12 +331,8 @@ function ContraDance() {
           <div>Keyframes: {JSON.stringify(focusedDancerBoundingKeyframes)}</div>
         </div>
       )}
-      <div className="flex flex-row border-2 border-black">
-        <div className="flex-1 border-1 border-red">02</div>
-        <div className="flex-1 border-1 border-blue">03</div>
-      </div>
-      <div className="">
-        <div className="flex flex-1">
+      <div style={{ display: "flex", flexDirection: "row" }}>
+        <div style={{ flex: 1 }}>
           <FigureList
             figures={figures}
             setFigures={setFigures}
@@ -339,7 +340,7 @@ function ContraDance() {
             invalidIndex={compositionErrorInd}
           />
         </div>
-        <div className="flex flex-1">
+        <div style={{ flex: 1 }}>
           <div style={{ position: "relative" }}>
             {init.entrySeq().map(([id, dancer]) => (
               <div
@@ -388,73 +389,132 @@ function AddFigureForm({ onAdd }: AddFigureFormProps) {
   const searchTest = (s: string) => searchRegexp.test(s.toLowerCase());
 
   const figures: List<{ text: string; figure: Parameters<typeof onAdd>[0] }> =
-    useMemo(
-      () =>
-        List([
-          {
-            text: "balance with your neighbor",
-            figure: balance({ withYour: "neighbor" }),
-          },
-          {
-            text: "balance with your partner",
-            figure: balance({ withYour: "partner" }),
-          },
-          {
-            text: "swing your neighbor (8)",
-            figure: swing({ beats: 8, withYour: "neighbor" }),
-          },
-          {
-            text: "swing your partner (8)",
-            figure: swing({ beats: 8, withYour: "partner" }),
-          },
-          {
-            text: "swing your neighbor (16)",
-            figure: swing({ beats: 16, withYour: "neighbor" }),
-          },
-          {
-            text: "swing your partner (16)",
-            figure: swing({ beats: 16, withYour: "partner" }),
-          },
-          {
-            text: "box the gnat with your neighbor",
-            figure: boxTheGnat({ withYour: "neighbor" }),
-          },
-          {
-            text: "box the gnat with your partner",
-            figure: boxTheGnat({ withYour: "partner" }),
-          },
-          {
-            text: "petronella spin with your partner/neighbor",
-            figure: petronellaSpin({ withYour: ["partner", "neighbor"] }),
-          },
-          {
-            text: "balance the ring with your partner/neighbor",
-            figure: ringBalance({ withYour: ["partner", "neighbor"] }),
-          },
-          {
-            text: "robins chain to your neighbor",
-            figure: robinsChainAcross({ toYour: "neighbor" }),
-          },
-          {
-            text: "robins chain to your partner",
-            figure: robinsChainAcross({ toYour: "partner" }),
-          },
-          { text: "face across", figure: { endThatMoveFacing: "across" } },
-          {
-            text: "face your partner",
-            figure: { endThatMoveFacing: "partnerward" },
-          },
-          {
-            text: "face your neighbor",
-            figure: { endThatMoveFacing: "neighborward" },
-          },
-          {
-            text: "right left through",
-            figure: rightLeftThrough(),
-          },
-        ] as const).sortBy(({ text }) => text),
-      []
-    );
+    useMemo(() => {
+      return List([
+        {
+          text: "balance with your neighbor",
+          figure: balance({ withYour: "neighbor" }),
+        },
+        {
+          text: "balance with your partner",
+          figure: balance({ withYour: "partner" }),
+        },
+        {
+          text: "swing your neighbor (8)",
+          figure: swing({ beats: 8, withYour: "neighbor" }),
+        },
+        {
+          text: "swing your partner (8)",
+          figure: swing({ beats: 8, withYour: "partner" }),
+        },
+        {
+          text: "swing your neighbor (12)",
+          figure: swing({ beats: 12, withYour: "neighbor" }),
+        },
+        {
+          text: "swing your partner (12)",
+          figure: swing({ beats: 12, withYour: "partner" }),
+        },
+        {
+          text: "swing your neighbor (16)",
+          figure: swing({ beats: 16, withYour: "neighbor" }),
+        },
+        {
+          text: "swing your partner (16)",
+          figure: swing({ beats: 16, withYour: "partner" }),
+        },
+        {
+          text: "box the gnat with your neighbor",
+          figure: boxTheGnat({ withYour: "neighbor" }),
+        },
+        {
+          text: "box the gnat with your partner",
+          figure: boxTheGnat({ withYour: "partner" }),
+        },
+        {
+          text: "petronella spin with your partner/neighbor",
+          figure: petronellaSpin({ withYour: ["partner", "neighbor"] }),
+        },
+        {
+          text: "balance the ring with your partner/neighbor",
+          figure: ringBalance({ withYour: ["partner", "neighbor"] }),
+        },
+        {
+          text: "robins chain to your neighbor",
+          figure: robinsChainAcross({ toYour: "neighbor" }),
+        },
+        {
+          text: "robins chain to your partner",
+          figure: robinsChainAcross({ toYour: "partner" }),
+        },
+        {
+          text: "larks roll away your partner",
+          figure: larksRollAway({ your: "partner" }),
+        },
+        {
+          text: "larks roll away your neighbor",
+          figure: larksRollAway({ your: "neighbor" }),
+        },
+        {
+          text: "do si do once",
+          figure: doSiDo1(),
+        },
+        {
+          text: "do si do 1 1/2",
+          figure: doSiDo112(),
+        },
+        {
+          text: "circle left 3 with your partner and neighbor",
+          figure: circle({
+            handedness: "left",
+            spots: 3,
+            withYour: ["partner", "neighbor"],
+          }),
+        },
+        {
+          text: "circle right 3 with your partner and neighbor",
+          figure: circle({
+            handedness: "right",
+            spots: 3,
+            withYour: ["partner", "neighbor"],
+          }),
+        },
+        {
+          text: "circle left 4 with your partner and neighbor",
+          figure: circle({
+            handedness: "left",
+            spots: 4,
+            withYour: ["partner", "neighbor"],
+          }),
+        },
+        {
+          text: "circle right 4 with your partner and neighbor",
+          figure: circle({
+            handedness: "right",
+            spots: 4,
+            withYour: ["partner", "neighbor"],
+          }),
+        },
+        { text: "pass through", figure: passThrough() },
+        { text: "face across", figure: { endThatMoveFacing: "across" } },
+        {
+          text: "face your partner",
+          figure: { endThatMoveFacing: "partnerward" },
+        },
+        {
+          text: "face your neighbor",
+          figure: { endThatMoveFacing: "neighborward" },
+        },
+        {
+          text: "right left through",
+          figure: rightLeftThrough(),
+        },
+        {
+          text: "you are now facing your new neighbor!",
+          figure: { youAreNowFacingYourNewNeighbor: true },
+        },
+      ] as const).sortBy(({ text }) => text);
+    }, []);
   return (
     <div>
       <input
@@ -504,8 +564,9 @@ function FigureList({
   const timestamps = useMemo(
     () =>
       figures.reduce(
-        (acc, f) => acc.push(acc.last() ?? 0 + ("beats" in f ? f.beats : 0)),
-        List<number>()
+        (acc, call) =>
+          acc.push(acc.last()! + ("beats" in call ? call.beats : 0)),
+        List.of(0)
       ),
     [figures]
   );
@@ -532,8 +593,10 @@ function FigureList({
             <td>{"beats" in f ? f.beats : ""}</td>
             <td>
               {"endThatMoveFacing" in f
-                ? `(-) (end that move facing ${f.endThatMoveFacing})`
-                : `(${f.beats}) ${f.name}`}
+                ? `(end that move facing ${f.endThatMoveFacing})`
+                : "youAreNowFacingYourNewNeighbor" in f
+                ? `You are now facing your new neighbor!`
+                : f.name}
             </td>
             <td>
               <button onClick={() => setFigures(figures.delete(i))}>x</button>
