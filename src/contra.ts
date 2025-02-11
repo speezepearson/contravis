@@ -405,9 +405,7 @@ export function petronellaKfs(
       );
     }
     const center = counter0.posn.clone().add(counter1.posn).divideScalar(2);
-    const centerCcw =
-      Math.atan2(center.y - dancer.posn.y, center.x - dancer.posn.x) /
-      (2 * Math.PI);
+    const centerCcw = ccwTowards(dancer.posn, center);
     const centerward = (len: number) =>
       center.clone().subtract(dancer.posn).normalize().multiplyScalar(len);
 
@@ -519,11 +517,7 @@ export function boxTheGnatKfs(
     }
     const counterpart = state.get(counterpartId)!;
     const finalCcw =
-      Math.atan2(
-        counterpart.posn.y - dancer.posn.y,
-        counterpart.posn.x - dancer.posn.x
-      ) /
-        (2 * Math.PI) +
+      ccwTowards(dancer.posn, counterpart.posn) +
       (dancer.role === LARK ? -1 / 4 : 1 / 4);
     return moves(dancer, [
       {
@@ -599,6 +593,10 @@ export function moves(
   }));
 }
 
+export function ccwTowards(from: Victor, to: Victor): number {
+  return Math.atan2(to.y - from.y, to.x - from.x) / (2 * Math.PI);
+}
+
 export function fudgeFacing(
   keyframes: ByDancer<List<DancerKeyframe>>,
   dir: InstructionDir | ((d: DancerState) => InstructionDir)
@@ -624,25 +622,13 @@ export function fudgeFacing(
           const partnerPosn = keyframes
             .get(unfudged.end.labels.partner)!
             .last()!.end.posn;
-          return (
-            Math.atan2(
-              partnerPosn.y - unfudged.end.posn.y,
-              partnerPosn.x - unfudged.end.posn.x
-            ) /
-            (2 * Math.PI)
-          );
+          return ccwTowards(unfudged.end.posn, partnerPosn);
         }
         case "neighborward": {
           const neighborPosn = keyframes
             .get(unfudged.end.labels.neighbor!)!
             .last()!.end.posn;
-          return (
-            Math.atan2(
-              neighborPosn.y - unfudged.end.posn.y,
-              neighborPosn.x - unfudged.end.posn.x
-            ) /
-            (2 * Math.PI)
-          );
+          return ccwTowards(unfudged.end.posn, neighborPosn);
         }
       }
     })();
