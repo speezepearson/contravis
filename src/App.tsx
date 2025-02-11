@@ -31,10 +31,9 @@ import {
   robinsChainAcross,
   ringBalance,
   petronellaSpin,
-  InstructionDir,
-  Subroutine,
   CompositionError,
   rightLeftThrough,
+  Call,
 } from "./contra";
 
 const pxPerPace = 50;
@@ -134,9 +133,7 @@ function ContraDance() {
 
   const init = useMemo(() => initImproper(4), []);
 
-  const [figures, setFigures] = useState<
-    List<Subroutine | { endThatMoveFacing: InstructionDir }>
-  >(
+  const [figures, setFigures] = useState<List<Call>>(
     List([
       balance({ withYour: "neighbor" }),
       boxTheGnat({ withYour: "neighbor" }),
@@ -274,17 +271,6 @@ function ContraDance() {
     anim.seek(beatsToMs(beat));
   }, [beat, anim, totalBeats, beatsToMs]);
 
-  // const curKeyframe = useMemo(() => {
-  //   let beatsSoFar = 0;
-  //   for (const keyframe of keyframes) {
-  //     beatsSoFar += keyframe.beats;
-  //     if (beatsSoFar > beat) {
-  //       return keyframe;
-  //     }
-  //   }
-  //   return keyframes.last()!;
-  // }, [keyframes, beat]);
-
   const [focusedDancerId, setFocusedDancerId] = useState<DancerId | null>(null);
   const focusedDancerBoundingKeyframes:
     | [DancerKeyframe | null, DancerKeyframe | null]
@@ -340,64 +326,57 @@ function ContraDance() {
           <div>Keyframes: {JSON.stringify(focusedDancerBoundingKeyframes)}</div>
         </div>
       )}
-      <ul>
-        {figures.map((f, i) => (
-          <li
-            key={i}
-            style={{
-              fontWeight: curSubroutine?.i === i ? "bold" : "normal",
-              color:
-                compositionErrorInd != null && i >= compositionErrorInd
-                  ? "red"
-                  : "",
-            }}
-          >
-            {"endThatMoveFacing" in f ? f.endThatMoveFacing : f.name}{" "}
-            <button onClick={() => setFigures((figures) => figures.delete(i))}>
-              x
-            </button>
-          </li>
-        ))}
-        <li>
-          <AddMoveForm
-            onAdd={(f) => {
-              setFigures((figures) => figures.push(f));
-            }}
+      <div className="flex flex-row border-2 border-black">
+        <div className="flex-1 border-1 border-red">02</div>
+        <div className="flex-1 border-1 border-blue">03</div>
+      </div>
+      <div className="">
+        <div className="flex flex-1">
+          <FigureList
+            figures={figures}
+            setFigures={setFigures}
+            highlightAtBeat={beat}
+            invalidIndex={compositionErrorInd}
           />
-        </li>
-      </ul>
-      <div style={{ position: "relative" }}>
-        {init.entrySeq().map(([id, dancer]) => (
-          <div
-            key={id}
-            style={{ position: "absolute", top: 0, left: 0 }}
-            onClick={() => setFocusedDancerId(id)}
-          >
-            {dancer.role === LARK ? (
-              <Lark
-                ref={setDancerRef.get(id)}
-                label={id}
-                fill={dancer.progressDirection === "up" ? "#00000044" : "none"}
-              />
-            ) : (
-              <Robin
-                ref={setDancerRef.get(id)}
-                label={id}
-                fill={dancer.progressDirection === "up" ? "#00000044" : "none"}
-              />
-            )}
+        </div>
+        <div className="flex flex-1">
+          <div style={{ position: "relative" }}>
+            {init.entrySeq().map(([id, dancer]) => (
+              <div
+                key={id}
+                style={{ position: "absolute", top: 0, left: 0 }}
+                onClick={() => setFocusedDancerId(id)}
+              >
+                {dancer.role === LARK ? (
+                  <Lark
+                    ref={setDancerRef.get(id)}
+                    label={id}
+                    fill={
+                      dancer.progressDirection === "up" ? "#00000044" : "none"
+                    }
+                  />
+                ) : (
+                  <Robin
+                    ref={setDancerRef.get(id)}
+                    label={id}
+                    fill={
+                      dancer.progressDirection === "up" ? "#00000044" : "none"
+                    }
+                  />
+                )}
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
     </>
   );
 }
 
-function AddMoveForm({
-  onAdd,
-}: {
-  onAdd: (f: Subroutine | { endThatMoveFacing: InstructionDir }) => void;
-}) {
+type AddFigureFormProps = {
+  onAdd: (f: Call) => void;
+};
+function AddFigureForm({ onAdd }: AddFigureFormProps) {
   const [search, setSearch] = useState("");
   const searchRegexp = useMemo(() => {
     const pat = search
@@ -408,40 +387,74 @@ function AddMoveForm({
   }, [search]);
   const searchTest = (s: string) => searchRegexp.test(s.toLowerCase());
 
-  const figures: { text: string; figure: Parameters<typeof onAdd>[0] }[] = [
-    { text: "balance neighbor", figure: balance({ withYour: "neighbor" }) },
-    { text: "balance partner", figure: balance({ withYour: "partner" }) },
-    {
-      text: "box the gnat neighbor",
-      figure: boxTheGnat({ withYour: "neighbor" }),
-    },
-    {
-      text: "box the gnat partner",
-      figure: boxTheGnat({ withYour: "partner" }),
-    },
-    {
-      text: "petronella spin partner/neighbor",
-      figure: petronellaSpin({ withYour: ["partner", "neighbor"] }),
-    },
-    {
-      text: "ring balance partner/neighbor",
-      figure: ringBalance({ withYour: ["partner", "neighbor"] }),
-    },
-    {
-      text: "robins chain to neighbor",
-      figure: robinsChainAcross({ toYour: "neighbor" }),
-    },
-    {
-      text: "robins chain to partner",
-      figure: robinsChainAcross({ toYour: "partner" }),
-    },
-    { text: "face across", figure: { endThatMoveFacing: "across" } },
-    { text: "face your partner", figure: { endThatMoveFacing: "partnerward" } },
-    {
-      text: "face your neighbor",
-      figure: { endThatMoveFacing: "neighborward" },
-    },
-  ];
+  const figures: List<{ text: string; figure: Parameters<typeof onAdd>[0] }> =
+    useMemo(
+      () =>
+        List([
+          {
+            text: "balance with your neighbor",
+            figure: balance({ withYour: "neighbor" }),
+          },
+          {
+            text: "balance with your partner",
+            figure: balance({ withYour: "partner" }),
+          },
+          {
+            text: "swing your neighbor (8)",
+            figure: swing({ beats: 8, withYour: "neighbor" }),
+          },
+          {
+            text: "swing your partner (8)",
+            figure: swing({ beats: 8, withYour: "partner" }),
+          },
+          {
+            text: "swing your neighbor (16)",
+            figure: swing({ beats: 16, withYour: "neighbor" }),
+          },
+          {
+            text: "swing your partner (16)",
+            figure: swing({ beats: 16, withYour: "partner" }),
+          },
+          {
+            text: "box the gnat with your neighbor",
+            figure: boxTheGnat({ withYour: "neighbor" }),
+          },
+          {
+            text: "box the gnat with your partner",
+            figure: boxTheGnat({ withYour: "partner" }),
+          },
+          {
+            text: "petronella spin with your partner/neighbor",
+            figure: petronellaSpin({ withYour: ["partner", "neighbor"] }),
+          },
+          {
+            text: "balance the ring with your partner/neighbor",
+            figure: ringBalance({ withYour: ["partner", "neighbor"] }),
+          },
+          {
+            text: "robins chain to your neighbor",
+            figure: robinsChainAcross({ toYour: "neighbor" }),
+          },
+          {
+            text: "robins chain to your partner",
+            figure: robinsChainAcross({ toYour: "partner" }),
+          },
+          { text: "face across", figure: { endThatMoveFacing: "across" } },
+          {
+            text: "face your partner",
+            figure: { endThatMoveFacing: "partnerward" },
+          },
+          {
+            text: "face your neighbor",
+            figure: { endThatMoveFacing: "neighborward" },
+          },
+          {
+            text: "right left through",
+            figure: rightLeftThrough(),
+          },
+        ] as const).sortBy(({ text }) => text),
+      []
+    );
   return (
     <div>
       <input
@@ -462,6 +475,84 @@ function AddMoveForm({
           </button>
         ))}
     </div>
+  );
+}
+
+type FigureListProps = {
+  figures: List<Call>;
+  highlightAtBeat: number;
+  setFigures: (figures: List<Call>) => void;
+  invalidIndex?: number | null;
+};
+function FigureList({
+  figures,
+  highlightAtBeat,
+  setFigures,
+  invalidIndex,
+}: FigureListProps) {
+  const curSubroutine = useMemo(() => {
+    let beatsSoFar = 0;
+    for (const [i, f] of figures.entries()) {
+      if (!("beats" in f)) continue;
+      beatsSoFar += f.beats;
+      if (beatsSoFar > highlightAtBeat) {
+        return i;
+      }
+    }
+  }, [figures, highlightAtBeat]);
+
+  const timestamps = useMemo(
+    () =>
+      figures.reduce(
+        (acc, f) => acc.push(acc.last() ?? 0 + ("beats" in f ? f.beats : 0)),
+        List<number>()
+      ),
+    [figures]
+  );
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Dur</th>
+          <th>Figure</th>
+          <th>Remove</th>
+        </tr>
+      </thead>
+      <tbody>
+        {figures.map((f, i) => (
+          <tr
+            key={i}
+            style={{
+              fontWeight: curSubroutine === i ? "bold" : "normal",
+              color: invalidIndex != null && i >= invalidIndex ? "red" : "",
+            }}
+          >
+            <td>{timestamps.get(i)}</td>
+            <td>{"beats" in f ? f.beats : ""}</td>
+            <td>
+              {"endThatMoveFacing" in f
+                ? `(-) (end that move facing ${f.endThatMoveFacing})`
+                : `(${f.beats}) ${f.name}`}
+            </td>
+            <td>
+              <button onClick={() => setFigures(figures.delete(i))}>x</button>
+            </td>
+          </tr>
+        ))}
+        <tr>
+          <td></td>
+          <td></td>
+          <td>
+            <AddFigureForm
+              onAdd={(f) => {
+                setFigures(figures.push(f));
+              }}
+            />
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 

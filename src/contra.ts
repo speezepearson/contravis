@@ -582,6 +582,29 @@ export function boxTheGnatKfs(
   });
 }
 
+export function rightLeftThrough(): Subroutine {
+  return {
+    name: "right left through",
+    beats: 4,
+    buildKeyframes: (cur) =>
+      cur.map((dancer) => {
+        // TODO: ensure facing across
+        return moves(dancer, [
+          {
+            beats: 2,
+            dx: fwd(2),
+            dccw: (1 / 4) * (dancer.role === LARK ? -1 : 1),
+          },
+          {
+            beats: 2,
+            dx: fwd(2).add(partnerward(dancer, 2)),
+            dccw: (1 / 2) * (dancer.role === LARK ? -1 : 1),
+          },
+        ]);
+      }),
+  };
+}
+
 export function getCurState(
   kfs: ByDancer<List<DancerKeyframe>>
 ): ByDancer<DancerState> {
@@ -692,9 +715,11 @@ export function fudgeFacing(
   });
 }
 
+export type Call = Subroutine | { endThatMoveFacing: InstructionDir };
+
 export function compose(
   init: ByDancer<DancerState>,
-  pieces: Iterable<Subroutine | { endThatMoveFacing: InstructionDir }>
+  pieces: Iterable<Call>
 ): ByDancer<List<DancerKeyframe>> {
   let res: ByDancer<List<DancerKeyframe>> = init.map((dancer) =>
     List.of({ beats: 0, end: dancer })
