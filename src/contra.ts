@@ -38,9 +38,7 @@ export interface DancerState {
   posn: Victor;
   ccw: CcwTurns;
   labels: { partner: DancerId } & Partial<{
-    neighbor: DancerId;
-    prevNeighbor: DancerId;
-    nextNeighbor: DancerId; // TODO: how do these get assigned? Especially on the ends?
+    neighbor: DancerId; // TODO: how does this get assigned? Especially on the ends?
     shadow: DancerId;
   }>;
 }
