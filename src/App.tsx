@@ -298,13 +298,13 @@ function ContraDance() {
               <Lark
                 ref={setDancerRef.get(id)}
                 label={id}
-                fill={dancer.progressDirection.y > 0 ? "#00000044" : "none"}
+                fill={dancer.progressDirection === "up" ? "#00000044" : "none"}
               />
             ) : (
               <Robin
                 ref={setDancerRef.get(id)}
                 label={id}
-                fill={dancer.progressDirection.y > 0 ? "#00000044" : "none"}
+                fill={dancer.progressDirection === "up" ? "#00000044" : "none"}
               />
             )}
           </div>

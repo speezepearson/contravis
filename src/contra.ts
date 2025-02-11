@@ -13,10 +13,19 @@ export function roleAbbrev(role: Role): "L" | "R" {
   }
 }
 
+type InstructionDir =
+  | "up"
+  | "down"
+  | "across"
+  | "out"
+  | "progressward"
+  | "antiprogressward"
+  | "partnerward"
+  | "neighborward";
 export type CcwTurns = number;
-export type ProgressDirection = Victor & { __brand: "ProgressDirection" };
-export const PD_UP = new Victor(0, 1) as ProgressDirection;
-export const PD_DOWN = new Victor(0, -1) as ProgressDirection;
+export type ProgressDirection = "up" | "down";
+export const PD_UP = "up" as ProgressDirection;
+export const PD_DOWN = "down" as ProgressDirection;
 export type DancerId = string;
 
 export const fwd = (len: number = 1) => new Victor(len, 0);
@@ -26,7 +35,7 @@ export const right = (len: number = 1) => new Victor(0, -len);
 export const partnerward = ({ role }: { role: Role }, len: number = 1) =>
   role === LARK ? right(len) : left(len);
 export const progressward = (dancer: DancerState, len: number = 1) =>
-  dancer.progressDirection.y > 0 ? new Victor(0, len) : new Victor(0, -len);
+  dancer.progressDirection === "up" ? new Victor(0, len) : new Victor(0, -len);
 export const crossSet = (
   dancer: Pick<DancerState, "ccw" | "posn">,
   len: number = 1
@@ -320,17 +329,21 @@ export function formWaveKfs(
         beats: 4,
         x: dancer.posn
           .clone()
-          .add(dancer.progressDirection.clone().multiplyScalar(3 / 4))
           .add(
-            dancer.progressDirection
-              .clone()
+            new Victor(
+              0,
+              dancer.progressDirection === "up" ? 1 : -1
+            ).multiplyScalar(3 / 4)
+          )
+          .add(
+            new Victor(0, dancer.progressDirection === "up" ? 1 : -1)
               .multiplyScalar(1 / 2)
               .rotate(Math.PI / 2)
           ),
         ccw:
-          (dancer.progressDirection.y > 0 ? 1 / 4 : -1 / 4) +
+          (dancer.progressDirection === "up" ? 1 / 4 : -1 / 4) +
           Math.round(
-            dancer.ccw - (dancer.progressDirection.y > 0 ? 1 / 4 : -1 / 4)
+            dancer.ccw - (dancer.progressDirection === "up" ? 1 / 4 : -1 / 4)
           ),
       },
     ])
@@ -586,26 +599,27 @@ export function moves(
   }));
 }
 
-type FudgeFacingDir =
-  | "progress"
-  | "antiprogress"
-  | "across"
-  | "partnerward"
-  | "neighborward";
 export function fudgeFacing(
   keyframes: ByDancer<List<DancerKeyframe>>,
-  facing: FudgeFacingDir
+  dir: InstructionDir | ((d: DancerState) => InstructionDir)
 ): ByDancer<List<DancerKeyframe>> {
   return keyframes.map((kfs) => {
     const unfudged = kfs.last()!;
     const wantCcw = (() => {
-      switch (facing) {
-        case "progress":
-          return unfudged.end.progressDirection.y > 0 ? 1 / 4 : -1 / 4;
-        case "antiprogress":
-          return unfudged.end.progressDirection.y > 0 ? -1 / 4 : 1 / 4;
+      const dancerDir = typeof dir === "function" ? dir(unfudged.end) : dir;
+      switch (dancerDir) {
+        case "up":
+          return 1 / 4;
+        case "down":
+          return -1 / 4;
         case "across":
           return unfudged.end.posn.x < 0 ? 0 : 1 / 2;
+        case "out":
+          return unfudged.end.posn.x >= 0 ? 0 : 1 / 2;
+        case "progressward":
+          return unfudged.end.progressDirection === "up" ? 1 / 4 : -1 / 4;
+        case "antiprogressward":
+          return unfudged.end.progressDirection === "up" ? -1 / 4 : 1 / 4;
         case "partnerward": {
           const partnerPosn = keyframes
             .get(unfudged.end.labels.partner)!
@@ -644,7 +658,7 @@ export function fudgeFacing(
 
 export function compose(
   init: ByDancer<DancerState>,
-  pieces: Iterable<Subroutine | { endThatMoveFacing: FudgeFacingDir }>
+  pieces: Iterable<Subroutine | { endThatMoveFacing: InstructionDir }>
 ): ByDancer<List<DancerKeyframe>> {
   let res: ByDancer<List<DancerKeyframe>> = init.map((dancer) =>
     List.of({ beats: 0, end: dancer })
