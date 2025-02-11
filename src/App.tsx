@@ -180,7 +180,7 @@ function ContraDance() {
 
     const anim = anime.timeline({
       duration: beatsToMs(totalBeats),
-      easing: "easeInOutSine",
+      easing: "linear",
       autoplay: false,
       update: (anim) => {
         setBeat((anim.progress / 100) * totalBeats);
@@ -216,7 +216,7 @@ function ContraDance() {
 
   const [beat, setBeat] = useState(0);
   useEffect(() => {
-    if (Math.abs(anim.progress - 100 * (beat / totalBeats)) > 1) {
+    if (Math.abs(anim.progress - 100 * (beat / totalBeats)) > 0.1) {
       // rounding errors
       anim.seek(anim.duration * (beat / totalBeats));
     }
