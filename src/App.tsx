@@ -3,7 +3,14 @@ import "./App.css";
 import anime from "animejs";
 
 import { List, Map } from "immutable";
-import { HTMLProps, useEffect, useMemo, useRef, useState } from "react";
+import {
+  HTMLProps,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ByDancer,
   DancerState,
@@ -27,11 +34,10 @@ import {
   InstructionDir,
   Subroutine,
   CompositionError,
+  rightLeftThrough,
 } from "./contra";
 
 const pxPerPace = 50;
-const beatsPerSec = 4;
-const beatsToMs = (beats: number) => (beats / beatsPerSec) * 1000;
 
 const sqrt3 = Math.sqrt(3);
 
@@ -116,6 +122,12 @@ function animeProps(dancer: DancerState) {
 }
 
 function ContraDance() {
+  const [beatsPerSec, setBeatsPerSec] = useState(4);
+  const beatsToMs = useCallback(
+    (beats: number) => (beats / beatsPerSec) * 1000,
+    [beatsPerSec]
+  );
+
   const [dancerRefs, setDancerRefs] = useState<ByDancer<SVGSVGElement | null>>(
     Map()
   );
@@ -239,7 +251,7 @@ function ContraDance() {
     }
 
     return anim;
-  }, [dancerRefs, keyframes, totalBeats]);
+  }, [dancerRefs, keyframes, totalBeats, beatsToMs]);
 
   const prevAnim = useRef<anime.AnimeInstance | null>(null);
   useEffect(() => {
@@ -260,18 +272,7 @@ function ContraDance() {
       return;
     }
     anim.seek(beatsToMs(beat));
-  }, [beat, anim, totalBeats]);
-
-  const curSubroutine = useMemo(() => {
-    let beatsSoFar = 0;
-    for (const [i, f] of figures.entries()) {
-      if (!("beats" in f)) continue;
-      beatsSoFar += f.beats;
-      if (beatsSoFar > beat) {
-        return { i, ...f };
-      }
-    }
-  }, [figures, beat]);
+  }, [beat, anim, totalBeats, beatsToMs]);
 
   // const curKeyframe = useMemo(() => {
   //   let beatsSoFar = 0;
@@ -303,22 +304,34 @@ function ContraDance() {
 
   return (
     <>
-      <button onClick={() => anim.play()}>Play</button>
-      <button onClick={() => anim.pause()}>Pause</button>
-      <button onClick={() => anim.restart()}>Restart</button>
-      <input
-        type="range"
-        min="0"
-        max={totalBeats}
-        step="0.1"
-        value={beat}
-        onChange={(e) => {
-          const newBeat = parseFloat(e.target.value);
-          setBeat(newBeat);
-          anim.seek(anim.duration * (newBeat / totalBeats));
-        }}
-      />
       <div>
+        <button onClick={() => anim.play()}>Play</button>
+        <button onClick={() => anim.pause()}>Pause</button>
+        <button onClick={() => anim.restart()}>Restart</button>
+        <input
+          type="range"
+          min="0"
+          max={totalBeats}
+          step="0.1"
+          value={beat}
+          onChange={(e) => {
+            const newBeat = parseFloat(e.target.value);
+            setBeat(newBeat);
+            anim.seek(anim.duration * (newBeat / totalBeats));
+          }}
+        />
+      </div>
+      <div>
+        Beats per second:
+        <input
+          type="number"
+          min="0.5"
+          max="8"
+          step={0.1}
+          value={beatsPerSec}
+          onChange={(e) => setBeatsPerSec(parseFloat(e.target.value))}
+        />{" "}
+        Current beat:
         {beat.toFixed(0)} {/*curKeyframe.happening*/}
       </div>
       {focusedDancerId && (
