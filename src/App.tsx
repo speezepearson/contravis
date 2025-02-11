@@ -34,7 +34,9 @@ const beatsToMs = (beats: number) => (beats / beatsPerSec) * 1000;
 
 const sqrt3 = Math.sqrt(3);
 
-function Lark(props: HTMLProps<SVGSVGElement> & { label: string }) {
+function Lark(
+  props: HTMLProps<SVGSVGElement> & { label: string; fill?: string }
+) {
   // empty red-bordered circle with radial red line
   return (
     <svg width={pxPerPace} height={pxPerPace} {...props}>
@@ -44,7 +46,7 @@ function Lark(props: HTMLProps<SVGSVGElement> & { label: string }) {
         r={pxPerPace / 2}
         stroke="red"
         strokeWidth=""
-        fill="none"
+        fill={props.fill}
       />
       <line
         x1={pxPerPace / 2}
@@ -68,7 +70,9 @@ function Lark(props: HTMLProps<SVGSVGElement> & { label: string }) {
   );
 }
 
-function Robin(props: HTMLProps<SVGSVGElement> & { label: string }) {
+function Robin(
+  props: HTMLProps<SVGSVGElement> & { label: string; fill?: string }
+) {
   // empty blue-bordered equilateral triangle with blue line from center to top
   return (
     <svg width={pxPerPace} height={pxPerPace} {...props}>
@@ -78,7 +82,7 @@ function Robin(props: HTMLProps<SVGSVGElement> & { label: string }) {
         } ${pxPerPace / 4},${pxPerPace / 2 - (pxPerPace / 4) * sqrt3}`}
         stroke="blue"
         strokeWidth="1"
-        fill="none"
+        fill={props.fill}
       />
       <line
         x1={pxPerPace / 2}
@@ -307,9 +311,17 @@ function ContraDance() {
             onClick={() => setFocusedDancerId(id)}
           >
             {dancer.role === LARK ? (
-              <Lark ref={setDancerRef.get(id)} label={id} />
+              <Lark
+                ref={setDancerRef.get(id)}
+                label={id}
+                fill={dancer.progressDirection.y > 0 ? "#00000044" : "none"}
+              />
             ) : (
-              <Robin ref={setDancerRef.get(id)} label={id} />
+              <Robin
+                ref={setDancerRef.get(id)}
+                label={id}
+                fill={dancer.progressDirection.y > 0 ? "#00000044" : "none"}
+              />
             )}
           </div>
         ))}
