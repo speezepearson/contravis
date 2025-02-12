@@ -1,21 +1,35 @@
 import { describe, expect, test } from "vitest";
-import {
-  findPersonInDirection,
-  ByDancer,
-  initImproper,
-  LARK,
-  fwd,
-  ROBIN,
-  initBeckett,
-  partnerward,
-  swingKfs,
-  robinsChainAcrossKfs,
-  DancerState,
-  PD_UP,
-  PD_DOWN,
-} from "./contra";
-import { Map } from "immutable";
+import { findPersonInDirection, fwd, partnerward } from "./contra";
+import { LARK, ROBIN, PD_UP, PD_DOWN, DancerState, ByDancer } from "./types";
+import { List, Map } from "immutable";
 import Victor from "victor";
+import { robinsChainAcross, swing } from "./figures";
+import { initImproper, initBeckett } from "./formations";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const deepRound = (x: any): any => {
+  if (typeof x === "number") {
+    return Math.round(x * 1000) / 1000;
+  }
+  if (Array.isArray(x)) {
+    return x.map(deepRound);
+  }
+  if (x instanceof Victor) {
+    return new Victor(deepRound(x.x), deepRound(x.y));
+  }
+  if (Map.isMap(x)) {
+    return x.map((v) => deepRound(v));
+  }
+  if (List.isList(x)) {
+    return x.map(deepRound);
+  }
+  if (typeof x === "object" && x !== null) {
+    return Object.fromEntries(
+      Object.entries(x).map(([k, v]) => [k, deepRound(v)])
+    );
+  }
+  return x;
+};
 
 describe("initImproper", () => {
   test("gives right dancer ids", () => {
@@ -230,12 +244,14 @@ describe("findPersonInDirection", () => {
   });
 });
 
-describe("swingKfs", () => {
+describe("swing", () => {
   test("smoke", () => {
     const state = initImproper(1);
     console.log("L0 starts at", state.get("L0"));
-    const end = swingKfs(state, { withYour: "neighbor", beats: 8 }).map(
-      (kfs) => kfs.last()?.end
+    const end = deepRound(
+      swing({ withYour: "neighbor", beats: 8 })
+        .buildKeyframes(state)
+        .map((kfs) => kfs.last()?.end)
     );
     expect(end.get("L0")).toMatchObject({
       posn: new Victor(-1, 2),
@@ -257,18 +273,18 @@ describe("swingKfs", () => {
 
   test("throws if dancers are across the set", () => {
     const state = initBeckett(1);
-    expect(() => swingKfs(state, { withYour: "neighbor", beats: 8 })).toThrow(
-      /across the set/
-    );
+    expect(() =>
+      swing({ withYour: "neighbor", beats: 8 }).buildKeyframes(state)
+    ).toThrow(/across the set/);
   });
 });
 
-describe("robinsChainAcrossKfs", () => {
+describe("robinsChainAcross", () => {
   test("smoke", () => {
     const state = initBeckett(1);
-    const end = robinsChainAcrossKfs(state, { toYour: "neighbor" }).map(
-      (kfs) => kfs.last()?.end
-    );
+    const end = robinsChainAcross({ toYour: "neighbor" })
+      .buildKeyframes(state)
+      .map((kfs) => kfs.last()?.end);
     expect(end.get("L0") ?? state.get("L0")).toEqual({
       ...state.get("L0"),
       ccw: state.get("L0")!.ccw + 1,

@@ -1,20 +1,20 @@
 import { List } from "immutable";
 import {
   balance,
-  ByDancer,
-  Call,
   circle,
-  DancerState,
   doSiDo1,
-  initImproper,
   larksRollAway,
   passThrough,
   rightLeftThrough,
   ringBalance,
   robinsChainAcross,
   swing,
-} from "./contra";
+} from "./figures";
+import { Call } from "./types";
+import { DancerState } from "./types";
 
+import { ByDancer } from "./types";
+import { initImproper } from "./formations";
 /**
  * https://contradb.com/dances/2593
  */
@@ -49,6 +49,7 @@ export function earlyEveningRollaway(): {
     calls: List([
       balance({ withYour: "neighbor" }),
       swing({ beats: 12, withYour: "neighbor" }), // "balance and swing" is 16 beats, so swing is only 12
+      balance({ withYour: "partner" }),
       rightLeftThrough(),
       robinsChainAcross({ toYour: "partner" }),
       ringBalance(),
@@ -60,8 +61,8 @@ export function earlyEveningRollaway(): {
         spots: 3,
         withYour: ["partner", "neighbor"],
       }),
-      passThrough(),
-      doSiDo1(),
+      passThrough({ beats: 2 }),
+      doSiDo1({ beats: 6 }),
     ]),
   };
 }
