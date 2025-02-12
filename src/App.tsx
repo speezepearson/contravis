@@ -49,9 +49,6 @@ function ContraDance() {
       throw e;
     }
   }, [init, calls]);
-  const compositionErrorInd = compositionError
-    ? calls.findIndex((f) => f === compositionError.subroutine)
-    : null;
 
   const setDancerRef = useMemo(
     () =>
@@ -184,7 +181,7 @@ function ContraDance() {
             calls={calls}
             setCalls={setCalls}
             highlightAtBeat={beat}
-            invalidIndex={compositionErrorInd}
+            compositionError={compositionError}
           />
         </div>
         <div style={{ flex: 1 }}>

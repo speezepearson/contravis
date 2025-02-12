@@ -2,18 +2,19 @@ import { List } from "immutable";
 import { useMemo } from "react";
 import { AddCallForm } from "./AddCallForm";
 import { Call } from "./types";
+import { CompositionError } from "./contra";
 
 type CallListProps = {
   calls: List<Call>;
   highlightAtBeat: number;
   setCalls: (calls: List<Call>) => void;
-  invalidIndex?: number | null;
+  compositionError?: CompositionError | null;
 };
 export function CallList({
   calls,
   highlightAtBeat,
   setCalls,
-  invalidIndex,
+  compositionError,
 }: CallListProps) {
   const curSubroutine = useMemo(() => {
     let beatsSoFar = 0;
@@ -51,7 +52,7 @@ export function CallList({
             key={i}
             style={{
               fontWeight: curSubroutine === i ? "bold" : "normal",
-              color: invalidIndex != null && i >= invalidIndex ? "red" : "",
+              color: call === compositionError?.subroutine ? "red" : "",
             }}
           >
             <td>{timestamps.get(i)}</td>
@@ -62,6 +63,8 @@ export function CallList({
                 : "youAreNowFacingYourNewNeighbor" in call
                 ? `You are now facing your new neighbor!`
                 : call.name}
+              {call === compositionError?.subroutine &&
+                ` -- ${compositionError.message}`}
             </td>
             <td>
               <button

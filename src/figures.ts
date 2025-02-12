@@ -420,8 +420,8 @@ export function passThrough({
     buildKeyframes: (cur) =>
       cur.map((dancer) =>
         moves(dancer, [
-          { beats: 2, dx: fwd(1).add(left(0.3)) },
-          { beats: 2, dx: fwd(2) },
+          { beats: beats / 2, dx: fwd(1).add(left(0.3)) },
+          { beats: beats / 2, dx: fwd(2) },
         ])
       ),
   };
@@ -434,10 +434,10 @@ export function doSiDo1({ beats = 8 }: { beats?: number } = {}): Subroutine {
     buildKeyframes: (cur) =>
       cur.map((dancer) =>
         moves(dancer, [
-          { beats: 2, dx: fwd(1).add(left(0.3)) },
-          { beats: 2, dx: fwd(2) },
-          { beats: 2, dx: fwd(1).add(right(0.3)) },
-          { beats: 2 },
+          { beats: beats / 4, dx: fwd(1).add(left(0.3)) },
+          { beats: beats / 4, dx: fwd(2) },
+          { beats: beats / 4, dx: fwd(1).add(right(0.3)) },
+          { beats: beats / 4 },
         ])
       ),
   };
