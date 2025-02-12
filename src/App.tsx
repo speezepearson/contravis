@@ -17,12 +17,6 @@ import {
   initImproper,
   DancerKeyframe,
   LARK,
-  fwd,
-  ROBIN,
-  moves,
-  right,
-  left,
-  bak,
   DancerId,
   compose,
   balance,
@@ -40,6 +34,7 @@ import {
   doSiDo1,
   doSiDo112,
 } from "./contra";
+import { earlyEveningRollaway } from "./dances";
 
 const pxPerPace = 50;
 
@@ -139,55 +134,7 @@ function ContraDance() {
   const init = useMemo(() => initImproper(4), []);
 
   const [figures, setFigures] = useState<List<Call>>(
-    List([
-      balance({ withYour: "neighbor" }),
-      boxTheGnat({ withYour: "neighbor" }),
-      ringBalance(),
-      petronellaSpin(),
-      ringBalance(),
-      petronellaSpin(),
-      { endThatMoveFacing: "neighborward" },
-      swing({ beats: 8, withYour: "neighbor" }),
-      robinsChainAcross({ toYour: "partner" }),
-      {
-        name: "larks allemande left 1 1/2",
-        beats: 8,
-        buildKeyframes: (cur) =>
-          cur.map((dancer) => {
-            if (dancer.role === ROBIN) return List();
-            return moves(dancer, [
-              {
-                beats: 8 / 6,
-                dx: fwd().add(right()).add(right(0.3)),
-                dccw: 0,
-              },
-              {
-                beats: 8 / 6,
-                dx: fwd().add(right()).add(fwd(0.3)),
-                dccw: 1 / 4,
-              },
-              {
-                beats: 8 / 6,
-                dx: fwd().add(right()).add(left(0.3)),
-                dccw: 2 / 4,
-              },
-              {
-                beats: 8 / 6,
-                dx: fwd().add(right()).add(bak(0.3)),
-                dccw: 3 / 4,
-              },
-              {
-                beats: 8 / 6,
-                dx: fwd().add(right()).add(right(0.3)),
-                dccw: 4 / 4,
-              },
-              { beats: 8 / 6, dx: fwd(2).add(right(2)), dccw: 6 / 4 },
-            ]);
-          }),
-      },
-      // (cur) => formWaveKfs(cur),
-      // (cur) => waveBalanceBellySlideKfs(cur),
-    ])
+    earlyEveningRollaway().calls
   );
   const [keyframes, compositionError]: [
     ByDancer<List<DancerKeyframe>>,
