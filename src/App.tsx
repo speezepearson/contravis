@@ -133,24 +133,22 @@ function ContraDance() {
 
   const init = useMemo(() => initImproper(4), []);
 
-  const [figures, setFigures] = useState<List<Call>>(
-    earlyEveningRollaway().calls
-  );
+  const [calls, setCalls] = useState<List<Call>>(earlyEveningRollaway().calls);
   const [keyframes, compositionError]: [
     ByDancer<List<DancerKeyframe>>,
     CompositionError | null
   ] = useMemo(() => {
     try {
-      return [compose(init, figures), null];
+      return [compose(init, calls), null];
     } catch (e) {
       if (e instanceof CompositionError) {
         return [e.partial, e];
       }
       throw e;
     }
-  }, [init, figures]);
+  }, [init, calls]);
   const compositionErrorInd = compositionError
-    ? figures.findIndex((f) => f === compositionError.subroutine)
+    ? calls.findIndex((f) => f === compositionError.subroutine)
     : null;
 
   const setDancerRef = useMemo(
@@ -280,9 +278,9 @@ function ContraDance() {
       )}
       <div style={{ display: "flex", flexDirection: "row" }}>
         <div style={{ flex: 1 }}>
-          <FigureList
-            figures={figures}
-            setFigures={setFigures}
+          <CallList
+            calls={calls}
+            setCalls={setCalls}
             highlightAtBeat={beat}
             invalidIndex={compositionErrorInd}
           />
@@ -321,10 +319,10 @@ function ContraDance() {
   );
 }
 
-type AddFigureFormProps = {
+type AddCallFormProps = {
   onAdd: (f: Call) => void;
 };
-function AddFigureForm({ onAdd }: AddFigureFormProps) {
+function AddCallForm({ onAdd }: AddCallFormProps) {
   const [search, setSearch] = useState("");
   const searchRegexp = useMemo(() => {
     const pat = search
@@ -335,133 +333,132 @@ function AddFigureForm({ onAdd }: AddFigureFormProps) {
   }, [search]);
   const searchTest = (s: string) => searchRegexp.test(s.toLowerCase());
 
-  const figures: List<{ text: string; figure: Parameters<typeof onAdd>[0] }> =
-    useMemo(() => {
-      return List([
-        {
-          text: "balance with your neighbor",
-          figure: balance({ withYour: "neighbor" }),
-        },
-        {
-          text: "balance with your partner",
-          figure: balance({ withYour: "partner" }),
-        },
-        {
-          text: "swing your neighbor (8)",
-          figure: swing({ beats: 8, withYour: "neighbor" }),
-        },
-        {
-          text: "swing your partner (8)",
-          figure: swing({ beats: 8, withYour: "partner" }),
-        },
-        {
-          text: "swing your neighbor (12)",
-          figure: swing({ beats: 12, withYour: "neighbor" }),
-        },
-        {
-          text: "swing your partner (12)",
-          figure: swing({ beats: 12, withYour: "partner" }),
-        },
-        {
-          text: "swing your neighbor (16)",
-          figure: swing({ beats: 16, withYour: "neighbor" }),
-        },
-        {
-          text: "swing your partner (16)",
-          figure: swing({ beats: 16, withYour: "partner" }),
-        },
-        {
-          text: "box the gnat with your neighbor",
-          figure: boxTheGnat({ withYour: "neighbor" }),
-        },
-        {
-          text: "box the gnat with your partner",
-          figure: boxTheGnat({ withYour: "partner" }),
-        },
-        {
-          text: "petronella spin with your partner/neighbor",
-          figure: petronellaSpin({ withYour: ["partner", "neighbor"] }),
-        },
-        {
-          text: "balance the ring with your partner/neighbor",
-          figure: ringBalance({ withYour: ["partner", "neighbor"] }),
-        },
-        {
-          text: "robins chain to your neighbor",
-          figure: robinsChainAcross({ toYour: "neighbor" }),
-        },
-        {
-          text: "robins chain to your partner",
-          figure: robinsChainAcross({ toYour: "partner" }),
-        },
-        {
-          text: "larks roll away your partner",
-          figure: larksRollAway({ your: "partner" }),
-        },
-        {
-          text: "larks roll away your neighbor",
-          figure: larksRollAway({ your: "neighbor" }),
-        },
-        {
-          text: "do si do once",
-          figure: doSiDo1(),
-        },
-        {
-          text: "do si do 1 1/2",
-          figure: doSiDo112(),
-        },
-        {
-          text: "circle left 3 with your partner and neighbor",
-          figure: circle({
-            handedness: "left",
-            spots: 3,
-            withYour: ["partner", "neighbor"],
-          }),
-        },
-        {
-          text: "circle right 3 with your partner and neighbor",
-          figure: circle({
-            handedness: "right",
-            spots: 3,
-            withYour: ["partner", "neighbor"],
-          }),
-        },
-        {
-          text: "circle left 4 with your partner and neighbor",
-          figure: circle({
-            handedness: "left",
-            spots: 4,
-            withYour: ["partner", "neighbor"],
-          }),
-        },
-        {
-          text: "circle right 4 with your partner and neighbor",
-          figure: circle({
-            handedness: "right",
-            spots: 4,
-            withYour: ["partner", "neighbor"],
-          }),
-        },
-        { text: "pass through", figure: passThrough() },
-        { text: "face across", figure: { endThatMoveFacing: "across" } },
-        {
-          text: "face your partner",
-          figure: { endThatMoveFacing: "partnerward" },
-        },
-        {
-          text: "face your neighbor",
-          figure: { endThatMoveFacing: "neighborward" },
-        },
-        {
-          text: "right left through",
-          figure: rightLeftThrough(),
-        },
-        {
-          text: "you are now facing your new neighbor!",
-          figure: { youAreNowFacingYourNewNeighbor: true },
-        },
-      ] as const).sortBy(({ text }) => text);
-    }, []);
+  const calls: List<{ text: string; call: Call }> = useMemo(() => {
+    return List([
+      {
+        text: "balance with your neighbor",
+        call: balance({ withYour: "neighbor" }),
+      },
+      {
+        text: "balance with your partner",
+        call: balance({ withYour: "partner" }),
+      },
+      {
+        text: "swing your neighbor (8)",
+        call: swing({ beats: 8, withYour: "neighbor" }),
+      },
+      {
+        text: "swing your partner (8)",
+        call: swing({ beats: 8, withYour: "partner" }),
+      },
+      {
+        text: "swing your neighbor (12)",
+        call: swing({ beats: 12, withYour: "neighbor" }),
+      },
+      {
+        text: "swing your partner (12)",
+        call: swing({ beats: 12, withYour: "partner" }),
+      },
+      {
+        text: "swing your neighbor (16)",
+        call: swing({ beats: 16, withYour: "neighbor" }),
+      },
+      {
+        text: "swing your partner (16)",
+        call: swing({ beats: 16, withYour: "partner" }),
+      },
+      {
+        text: "box the gnat with your neighbor",
+        call: boxTheGnat({ withYour: "neighbor" }),
+      },
+      {
+        text: "box the gnat with your partner",
+        call: boxTheGnat({ withYour: "partner" }),
+      },
+      {
+        text: "petronella spin with your partner/neighbor",
+        call: petronellaSpin({ withYour: ["partner", "neighbor"] }),
+      },
+      {
+        text: "balance the ring with your partner/neighbor",
+        call: ringBalance({ withYour: ["partner", "neighbor"] }),
+      },
+      {
+        text: "robins chain to your neighbor",
+        call: robinsChainAcross({ toYour: "neighbor" }),
+      },
+      {
+        text: "robins chain to your partner",
+        call: robinsChainAcross({ toYour: "partner" }),
+      },
+      {
+        text: "larks roll away your partner",
+        call: larksRollAway({ your: "partner" }),
+      },
+      {
+        text: "larks roll away your neighbor",
+        call: larksRollAway({ your: "neighbor" }),
+      },
+      {
+        text: "do si do once",
+        call: doSiDo1(),
+      },
+      {
+        text: "do si do 1 1/2",
+        call: doSiDo112(),
+      },
+      {
+        text: "circle left 3 with your partner and neighbor",
+        call: circle({
+          handedness: "left",
+          spots: 3,
+          withYour: ["partner", "neighbor"],
+        }),
+      },
+      {
+        text: "circle right 3 with your partner and neighbor",
+        call: circle({
+          handedness: "right",
+          spots: 3,
+          withYour: ["partner", "neighbor"],
+        }),
+      },
+      {
+        text: "circle left 4 with your partner and neighbor",
+        call: circle({
+          handedness: "left",
+          spots: 4,
+          withYour: ["partner", "neighbor"],
+        }),
+      },
+      {
+        text: "circle right 4 with your partner and neighbor",
+        call: circle({
+          handedness: "right",
+          spots: 4,
+          withYour: ["partner", "neighbor"],
+        }),
+      },
+      { text: "pass through", call: passThrough() },
+      { text: "face across", call: { endThatMoveFacing: "across" } },
+      {
+        text: "face your partner",
+        call: { endThatMoveFacing: "partnerward" },
+      },
+      {
+        text: "face your neighbor",
+        call: { endThatMoveFacing: "neighborward" },
+      },
+      {
+        text: "right left through",
+        call: rightLeftThrough(),
+      },
+      {
+        text: "you are now facing your new neighbor!",
+        call: { youAreNowFacingYourNewNeighbor: true },
+      },
+    ] as const).sortBy(({ text }) => text);
+  }, []);
   return (
     <div>
       <input
@@ -469,15 +466,15 @@ function AddFigureForm({ onAdd }: AddFigureFormProps) {
         onChange={(e) => setSearch(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
-            onAdd(figures.find((f) => searchTest(f.text))!.figure);
+            onAdd(calls.find((f) => searchTest(f.text))!.call);
             setSearch("");
           }
         }}
       />
-      {figures
+      {calls
         .filter((f) => searchTest(f.text))
-        .map(({ text, figure }) => (
-          <button key={text} onClick={() => onAdd(figure)}>
+        .map(({ text, call }) => (
+          <button key={text} onClick={() => onAdd(call)}>
             {text}
           </button>
         ))}
@@ -485,37 +482,37 @@ function AddFigureForm({ onAdd }: AddFigureFormProps) {
   );
 }
 
-type FigureListProps = {
-  figures: List<Call>;
+type CallListProps = {
+  calls: List<Call>;
   highlightAtBeat: number;
-  setFigures: (figures: List<Call>) => void;
+  setCalls: (calls: List<Call>) => void;
   invalidIndex?: number | null;
 };
-function FigureList({
-  figures,
+function CallList({
+  calls,
   highlightAtBeat,
-  setFigures,
+  setCalls,
   invalidIndex,
-}: FigureListProps) {
+}: CallListProps) {
   const curSubroutine = useMemo(() => {
     let beatsSoFar = 0;
-    for (const [i, f] of figures.entries()) {
+    for (const [i, f] of calls.entries()) {
       if (!("beats" in f)) continue;
       beatsSoFar += f.beats;
       if (beatsSoFar > highlightAtBeat) {
         return i;
       }
     }
-  }, [figures, highlightAtBeat]);
+  }, [calls, highlightAtBeat]);
 
   const timestamps = useMemo(
     () =>
-      figures.reduce(
+      calls.reduce(
         (acc, call) =>
           acc.push(acc.last()! + ("beats" in call ? call.beats : 0)),
         List.of(0)
       ),
-    [figures]
+    [calls]
   );
   return (
     <table>
@@ -523,12 +520,12 @@ function FigureList({
         <tr>
           <th>Time</th>
           <th>Dur</th>
-          <th>Figure</th>
+          <th>Call</th>
           <th style={{ minWidth: "5em" }}>Actions</th>
         </tr>
       </thead>
       <tbody>
-        {figures.map((f, i) => (
+        {calls.map((call, i) => (
           <tr
             key={i}
             style={{
@@ -537,28 +534,28 @@ function FigureList({
             }}
           >
             <td>{timestamps.get(i)}</td>
-            <td>{"beats" in f ? f.beats : ""}</td>
+            <td>{"beats" in call ? call.beats : ""}</td>
             <td>
-              {"endThatMoveFacing" in f
-                ? `(end that move facing ${f.endThatMoveFacing})`
-                : "youAreNowFacingYourNewNeighbor" in f
+              {"endThatMoveFacing" in call
+                ? `(end that move facing ${call.endThatMoveFacing})`
+                : "youAreNowFacingYourNewNeighbor" in call
                 ? `You are now facing your new neighbor!`
-                : f.name}
+                : call.name}
             </td>
             <td>
               <button
-                onClick={() => setFigures(figures.delete(i).insert(i - 1, f))}
+                onClick={() => setCalls(calls.delete(i).insert(i - 1, call))}
                 disabled={i === 0}
               >
                 ↑
               </button>
               <button
-                onClick={() => setFigures(figures.delete(i).insert(i + 1, f))}
-                disabled={i === figures.size - 1}
+                onClick={() => setCalls(calls.delete(i).insert(i + 1, call))}
+                disabled={i === calls.size - 1}
               >
                 ↓
               </button>
-              <button onClick={() => setFigures(figures.delete(i))}>x</button>
+              <button onClick={() => setCalls(calls.delete(i))}>x</button>
             </td>
           </tr>
         ))}
@@ -566,9 +563,9 @@ function FigureList({
           <td>{timestamps.last()}</td>
           <td></td>
           <td>
-            <AddFigureForm
-              onAdd={(f) => {
-                setFigures(figures.push(f));
+            <AddCallForm
+              onAdd={(call) => {
+                setCalls(calls.push(call));
               }}
             />
           </td>
