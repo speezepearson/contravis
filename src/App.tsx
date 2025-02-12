@@ -577,7 +577,7 @@ function FigureList({
           <th>Time</th>
           <th>Dur</th>
           <th>Figure</th>
-          <th>Remove</th>
+          <th style={{ minWidth: "5em" }}>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -599,12 +599,24 @@ function FigureList({
                 : f.name}
             </td>
             <td>
+              <button
+                onClick={() => setFigures(figures.delete(i).insert(i - 1, f))}
+                disabled={i === 0}
+              >
+                ↑
+              </button>
+              <button
+                onClick={() => setFigures(figures.delete(i).insert(i + 1, f))}
+                disabled={i === figures.size - 1}
+              >
+                ↓
+              </button>
               <button onClick={() => setFigures(figures.delete(i))}>x</button>
             </td>
           </tr>
         ))}
         <tr>
-          <td></td>
+          <td>{timestamps.last()}</td>
           <td></td>
           <td>
             <AddFigureForm
