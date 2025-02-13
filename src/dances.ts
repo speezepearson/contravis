@@ -1,6 +1,7 @@
 import { List } from "immutable";
 import {
   balance,
+  balanceAndSwing,
   circle,
   doSiDo1,
   larksRollAway,
@@ -42,8 +43,7 @@ export function earlyEveningRollaway(): Dance {
   return {
     init: initImproper(4),
     calls: List([
-      balance(),
-      swing({ beats: 12 }), // "balance and swing" is 16 beats, so swing is only 12
+      balanceAndSwing({ totalBeats: 16 }),
       balance(),
       rightLeftThrough(),
       robinsChain(),

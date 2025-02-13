@@ -20,6 +20,7 @@ import {
 import {
   bak,
   crossSet,
+  executeDance,
   fwd,
   left,
   move,
@@ -523,4 +524,21 @@ export function fudgeFacing(
       },
     });
   });
+}
+
+export function balanceAndSwing({
+  totalBeats,
+}: {
+  totalBeats: number;
+}): Subroutine {
+  return {
+    name: `balance and swing`,
+    beats: totalBeats,
+    buildKeyframes: (cur) => {
+      const bal = balance();
+      const sw = swing({ beats: totalBeats - bal.beats });
+      const res = executeDance({ init: cur, calls: List([bal, sw]) });
+      return res;
+    },
+  };
 }

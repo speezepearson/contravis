@@ -160,7 +160,10 @@ export function fudgeFacing(
   });
 }
 
-export function executeDance({ init, calls }: Dance) {
+export function executeDance({
+  init,
+  calls,
+}: Dance): ByDancer<List<DancerKeyframe>> {
   let res: ByDancer<List<DancerKeyframe>> = init.map((dancer) =>
     List.of({ beats: 0, end: dancer })
   );

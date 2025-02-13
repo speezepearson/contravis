@@ -12,6 +12,7 @@ import {
   rightLeftThrough,
   swing,
   passThrough,
+  balanceAndSwing,
 } from "./figures";
 import { Call } from "./types";
 import { List } from "immutable";
@@ -47,6 +48,18 @@ export function AddCallForm({ onAdd }: AddCallFormProps) {
       {
         text: "swing (16)",
         call: swing({ beats: 8 }),
+      },
+      {
+        text: "balance and swing (8)",
+        call: balanceAndSwing({ totalBeats: 8 }),
+      },
+      {
+        text: "balance and swing (12)",
+        call: balanceAndSwing({ totalBeats: 12 }),
+      },
+      {
+        text: "balance and swing (16)",
+        call: balanceAndSwing({ totalBeats: 16 }),
       },
       {
         text: "box the gnat with your neighbor",
