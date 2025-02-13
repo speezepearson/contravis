@@ -68,8 +68,14 @@ function ContraDance() {
         return acc + kf.beats;
       }, 0) ?? 0;
 
-  const anim: anime.AnimeInstance = useMemo(() => {
-    const anim = anime.timeline({
+  const anim = useRef(anime.timeline({ autoplay: false }));
+  useEffect(() => {
+    const prev = anim.current;
+    const wasPaused = prev.paused;
+    // debugger;
+    prev.pause();
+
+    anim.current = anime.timeline({
       duration: beatsToMs(totalBeats),
       easing: "linear",
       autoplay: false,
@@ -79,7 +85,7 @@ function ContraDance() {
     });
 
     for (const [id, kfs] of keyframes.entries()) {
-      anim.add(
+      anim.current.add(
         {
           targets: dancerRefs.get(id),
           keyframes: kfs
@@ -93,16 +99,11 @@ function ContraDance() {
       );
     }
 
-    return anim;
-  }, [dancerRefs, keyframes, totalBeats, beatsToMs]);
-
-  const prevAnim = useRef<anime.AnimeInstance | null>(null);
-  useEffect(() => {
-    if (prevAnim.current) {
-      prevAnim.current.pause();
+    anim.current.seek(prev.currentTime);
+    if (!wasPaused) {
+      anim.current.play();
     }
-    prevAnim.current = anim;
-  }, [anim]);
+  }, [dancerRefs, keyframes, totalBeats, beatsToMs]);
 
   const [beat, setBeat] = useState(0);
   useEffect(() => {
@@ -111,11 +112,17 @@ function ContraDance() {
     }
   }, [beat, totalBeats]);
   useEffect(() => {
-    if (Math.abs(anim.progress / 100 - beat / totalBeats) < 1e-6) {
+    const wantAnimMs = beatsToMs(beat);
+    if (Math.abs(anim.current.currentTime - wantAnimMs) < 1) {
       return;
     }
-    anim.seek(beatsToMs(beat));
-  }, [beat, anim, totalBeats, beatsToMs]);
+    const wasPaused = anim.current.paused;
+    anim.current.pause();
+    anim.current.seek(wantAnimMs);
+    if (!wasPaused) {
+      anim.current.play();
+    }
+  }, [beat, totalBeats, beatsToMs]);
 
   const [focusedDancerId, setFocusedDancerId] = useState<DancerId | null>(null);
   const focusedDancerBoundingKeyframes:
@@ -137,20 +144,16 @@ function ContraDance() {
   return (
     <>
       <div>
-        <button onClick={() => anim.play()}>Play</button>
-        <button onClick={() => anim.pause()}>Pause</button>
-        <button onClick={() => anim.restart()}>Restart</button>
+        <button onClick={() => anim.current.play()}>Play</button>
+        <button onClick={() => anim.current.pause()}>Pause</button>
+        <button onClick={() => anim.current.restart()}>Restart</button>
         <input
           type="range"
           min="0"
           max={totalBeats}
           step="0.1"
           value={beat}
-          onChange={(e) => {
-            const newBeat = parseFloat(e.target.value);
-            setBeat(newBeat);
-            anim.seek(anim.duration * (newBeat / totalBeats));
-          }}
+          onChange={(e) => setBeat(parseFloat(e.target.value))}
         />
       </div>
       <div>
