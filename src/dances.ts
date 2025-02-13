@@ -1,17 +1,5 @@
 import { List } from "immutable";
-import {
-  balance,
-  balanceAndSwing,
-  circle,
-  doSiDo1,
-  larksRollAway,
-  passThrough,
-  rightLeftThrough,
-  ringBalance,
-  robinsChain,
-  swing,
-} from "./figures";
-import { Dance } from "./types";
+import { Call, Dance } from "./types";
 import { initImproper } from "./formations";
 
 /**
@@ -43,21 +31,25 @@ export function earlyEveningRollaway(): Dance {
   return {
     init: initImproper(4),
     calls: List([
-      balanceAndSwing({ totalBeats: 16 }),
-      balance(),
-      rightLeftThrough(),
-      robinsChain(),
-      ringBalance(),
-      larksRollAway({ your: "neighbor" }),
+      { beats: 4, name: "balance" } as Call,
+      { beats: 12, name: "swing" },
+      { beats: 4, name: "balance" },
+      { beats: 4, name: "rightLeftThrough" },
+      { beats: 8, name: "robinsChain" },
+      { beats: 4, name: "ringBalance" },
+      { beats: 4, name: "larksRollAway", your: "neighbor" },
       { endThatMoveFacing: "partnerward" },
-      swing({ beats: 8 }),
-      circle({
+      { beats: 8, name: "swing" },
+      {
+        beats: 8,
+        name: "circle",
         handedness: "left",
         spots: 3,
-        withYour: ["partner", "neighbor"],
-      }),
-      passThrough({ beats: 2 }),
-      doSiDo1({ beats: 6 }),
+        withYour: ["partner", "neighbor"] as const,
+      },
+      { beats: 2, name: "passThrough" },
+      { youAreNowFacingYourNewNeighbor: true },
+      { beats: 6, name: "doSiDo1" },
     ]),
   };
 }

@@ -58,11 +58,7 @@ export function CallList({
             <td>{timestamps.get(i)}</td>
             <td>{"beats" in call ? call.beats : ""}</td>
             <td>
-              {"endThatMoveFacing" in call
-                ? `(end that move facing ${call.endThatMoveFacing})`
-                : "youAreNowFacingYourNewNeighbor" in call
-                ? `You are now facing your new neighbor!`
-                : call.name}
+              <CallElem call={call} />
               {call === compositionError?.call &&
                 ` -- ${compositionError.message}`}
             </td>
@@ -97,4 +93,45 @@ export function CallList({
       </tbody>
     </table>
   );
+}
+
+function CallElem({ call }: { call: Call }) {
+  if ("endThatMoveFacing" in call)
+    return `(end that move facing ${call.endThatMoveFacing})`;
+  if ("youAreNowFacingYourNewNeighbor" in call)
+    return `You are now facing your new neighbor!`;
+
+  switch (call.name) {
+    case "swing":
+      return "swing";
+    case "robinsChain":
+      return "robins chain";
+    case "formWave":
+      return "form wave";
+    case "waveBalanceBellySlide":
+      return "slide to the right";
+    case "ringBalance":
+      return "balance the ring";
+    case "petronellaSpin":
+      return "petronella spin";
+    case "balance":
+      return "balance";
+    case "boxTheGnat":
+      return "box the gnat";
+    case "rightLeftThrough":
+      return "right left through";
+    case "larksRollAway":
+      return "larks roll away";
+    case "circle":
+      return "circle";
+    case "passThrough":
+      return "pass through";
+    case "doSiDo1":
+      return "do si do";
+    case "doSiDo112":
+      return "do si do 1 1/2";
+    case "custom":
+      return "<custom>";
+  }
+  call satisfies never;
 }

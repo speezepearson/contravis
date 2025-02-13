@@ -11,8 +11,25 @@ import {
   alignCcw,
   Dance,
   Call,
+  Figure,
 } from "./types";
 import { ccwTowards } from "./util";
+import {
+  swing,
+  balance,
+  robinsChain,
+  formWave,
+  waveBalanceBellySlide,
+  ringBalance,
+  petronellaSpin,
+  boxTheGnat,
+  rightLeftThrough,
+  larksRollAway,
+  circle,
+  passThrough,
+  doSiDo1,
+  doSiDo112,
+} from "./figures";
 
 export const fwd = (len: number = 1) => new Victor(len, 0);
 export const bak = (len: number = 1) => new Victor(-len, 0);
@@ -160,6 +177,44 @@ export function fudgeFacing(
   });
 }
 
+export function figureToKeyframes(
+  figure: Figure,
+  cur: ByDancer<DancerState>
+): ByDancer<List<DancerKeyframe>> {
+  switch (figure.name) {
+    case "swing":
+      return swing(cur, figure);
+    case "balance":
+      return balance(cur, figure);
+    case "robinsChain":
+      return robinsChain(cur, figure);
+    case "formWave":
+      return formWave(cur, figure);
+    case "waveBalanceBellySlide":
+      return waveBalanceBellySlide(cur, figure);
+    case "ringBalance":
+      return ringBalance(cur, figure);
+    case "petronellaSpin":
+      return petronellaSpin(cur, figure);
+    case "boxTheGnat":
+      return boxTheGnat(cur, figure);
+    case "rightLeftThrough":
+      return rightLeftThrough(cur, figure);
+    case "larksRollAway":
+      return larksRollAway(cur, figure);
+    case "circle":
+      return circle(cur, figure);
+    case "passThrough":
+      return passThrough(cur, figure);
+    case "doSiDo1":
+      return doSiDo1(cur, figure);
+    case "doSiDo112":
+      return doSiDo112(cur, figure);
+    case "custom":
+      return figure.buildKeyframes(cur);
+  }
+}
+
 export function executeDance({
   init,
   calls,
@@ -168,11 +223,11 @@ export function executeDance({
     List.of({ beats: 0, end: dancer })
   );
 
-  for (const piece of calls) {
+  for (const call of calls) {
     const cur = res.size === 0 ? init : getCurState(res);
-    if ("endThatMoveFacing" in piece) {
-      res = fudgeFacing(res, piece.endThatMoveFacing);
-    } else if ("youAreNowFacingYourNewNeighbor" in piece) {
+    if ("endThatMoveFacing" in call) {
+      res = fudgeFacing(res, call.endThatMoveFacing);
+    } else if ("youAreNowFacingYourNewNeighbor" in call) {
       const newNeighbors = findPersonInDirection(cur, () => fwd(2));
       res = res.map((kfs, id) => {
         const dancer = cur.get(id)!;
@@ -186,25 +241,25 @@ export function executeDance({
       });
     } else {
       try {
-        const newKfss = piece.buildKeyframes(cur);
+        const newKfss = figureToKeyframes(call, cur);
         res = res.map((oldKfs, id) => {
           const newKfs = newKfss.get(id, List<DancerKeyframe>());
           const newKfsBeats = newKfs.reduce((t, kf) => t + kf.beats, 0);
-          if (newKfsBeats > piece.beats) {
+          if (newKfsBeats > call.beats) {
             throw new Error(
-              `dancer ${id} has ${newKfsBeats} beats of keyframes to accomplish but figure has only ${piece.beats} beats`
+              `dancer ${id} has ${newKfsBeats} beats of keyframes to accomplish but figure has only ${call.beats} beats`
             );
           }
-          if (newKfsBeats === piece.beats) {
+          if (newKfsBeats === call.beats) {
             return oldKfs.concat(newKfs);
           }
           return oldKfs.concat(newKfs).push({
-            beats: piece.beats - newKfsBeats,
+            beats: call.beats - newKfsBeats,
             end: oldKfs.concat(newKfs).last()!.end,
           });
         });
       } catch (e) {
-        throw new CompositionError(errstr(e), res, piece);
+        throw new CompositionError(errstr(e), res, call);
       }
     }
   }

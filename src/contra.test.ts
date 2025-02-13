@@ -249,9 +249,7 @@ describe("swing", () => {
     const state = initImproper(1);
     console.log("L0 starts at", state.get("L0"));
     const end = deepRound(
-      swing({ beats: 8 })
-        .buildKeyframes(state)
-        .map((kfs) => kfs.last()?.end)
+      swing(state, { beats: 8 }).map((kfs) => kfs.last()?.end)
     );
     expect(end.get("L0")).toMatchObject({
       posn: new Victor(-1, 2),
@@ -273,18 +271,14 @@ describe("swing", () => {
 
   test("throws if no candidates to swing with", () => {
     const state = initBeckett(1).filter((_, id) => id !== "L0");
-    expect(() => swing({ beats: 8 }).buildKeyframes(state)).toThrow(
-      /nobody to swing with/
-    );
+    expect(() => swing(state, { beats: 8 })).toThrow(/nobody to swing with/);
   });
 });
 
 describe("robinsChainAcross", () => {
   test("smoke", () => {
     const state = initBeckett(1);
-    const end = robinsChain()
-      .buildKeyframes(state)
-      .map((kfs) => kfs.last()?.end);
+    const end = robinsChain(state, { beats: 8 }).map((kfs) => kfs.last()?.end);
     expect(end.get("L0") ?? state.get("L0")).toEqual({
       ...state.get("L0"),
       ccw: state.get("L0")!.ccw + 1,
