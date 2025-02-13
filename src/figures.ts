@@ -6,7 +6,7 @@ import {
   ByDancer,
   DancerState,
   ROBIN,
-  Subroutine,
+  Figure,
   DancerKeyframe,
   alignCcw,
 } from "./types";
@@ -29,7 +29,7 @@ import {
   right,
 } from "./contra";
 
-export function swing({ beats }: { beats: number }): Subroutine {
+export function swing({ beats }: { beats: number }): Figure {
   return {
     name: `swing`,
     beats,
@@ -82,7 +82,7 @@ export function swing({ beats }: { beats: number }): Subroutine {
   };
 }
 
-export function robinsChain(): Subroutine {
+export function robinsChain(): Figure {
   return {
     name: `robins chain`,
     beats: 8,
@@ -190,7 +190,7 @@ export function ringBalance({
 }: {
   withYour?: [keyof DancerState["labels"], keyof DancerState["labels"]];
   beats?: number;
-} = {}): Subroutine {
+} = {}): Figure {
   return {
     name: `balance the ring with your ${withYour[0]} and ${withYour[1]}`,
     beats,
@@ -239,7 +239,7 @@ export function petronellaSpin({
   withYour = ["partner", "neighbor"],
 }: {
   withYour?: [keyof DancerState["labels"], keyof DancerState["labels"]];
-} = {}): Subroutine {
+} = {}): Figure {
   return {
     name: `petronella spin with your ${withYour[0]} and ${withYour[1]}`,
     beats: 4,
@@ -267,7 +267,7 @@ export function petronellaSpin({
   };
 }
 
-export function balance(): Subroutine {
+export function balance(): Figure {
   return {
     name: `balance`,
     beats: 4,
@@ -310,7 +310,7 @@ export function boxTheGnat({
   withYour,
 }: {
   withYour: keyof DancerState["labels"];
-}): Subroutine {
+}): Figure {
   return {
     name: `box the gnat with your ${withYour}`,
     beats: 4,
@@ -341,7 +341,7 @@ export function boxTheGnat({
 
 export function rightLeftThrough({
   beats = 4,
-}: { beats?: number } = {}): Subroutine {
+}: { beats?: number } = {}): Figure {
   return {
     name: "right left through",
     beats,
@@ -370,7 +370,7 @@ export function larksRollAway({
 }: {
   beats?: number;
   your: keyof DancerState["labels"];
-}): Subroutine {
+}): Figure {
   return {
     name: `larks roll away your ${your}`,
     beats,
@@ -404,7 +404,7 @@ export function circle({
   spots: number;
   withYour: [keyof DancerState["labels"], keyof DancerState["labels"]];
   beats?: number;
-}): Subroutine {
+}): Figure {
   return {
     name: `circle ${handedness} ${spots} spots with your ${withYour[0]} and ${withYour[1]}`,
     beats,
@@ -431,9 +431,7 @@ export function circle({
   };
 }
 
-export function passThrough({
-  beats = 2,
-}: { beats?: number } = {}): Subroutine {
+export function passThrough({ beats = 2 }: { beats?: number } = {}): Figure {
   return {
     name: `pass through`,
     beats,
@@ -447,7 +445,7 @@ export function passThrough({
   };
 }
 
-export function doSiDo1({ beats = 8 }: { beats?: number } = {}): Subroutine {
+export function doSiDo1({ beats = 8 }: { beats?: number } = {}): Figure {
   return {
     name: `do si do`,
     beats,
@@ -463,7 +461,7 @@ export function doSiDo1({ beats = 8 }: { beats?: number } = {}): Subroutine {
   };
 }
 
-export function doSiDo112({ beats = 12 }: { beats?: number } = {}): Subroutine {
+export function doSiDo112({ beats = 12 }: { beats?: number } = {}): Figure {
   return {
     name: `do si do 1 1/2`,
     beats,
@@ -530,7 +528,7 @@ export function balanceAndSwing({
   totalBeats,
 }: {
   totalBeats: number;
-}): Subroutine {
+}): Figure {
   return {
     name: `balance and swing`,
     beats: totalBeats,

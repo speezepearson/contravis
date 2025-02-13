@@ -37,7 +37,7 @@ export interface DancerState {
 }
 export type DancerKeyframe = { beats: number; end: DancerState };
 
-export interface Subroutine {
+export interface Figure {
   name: string;
   beats: number;
   buildKeyframes: (
@@ -47,7 +47,7 @@ export interface Subroutine {
 
 export type ByDancer<T> = Map<DancerId, T>;
 export type Call =
-  | Subroutine
+  | Figure
   | { endThatMoveFacing: InstructionDir }
   | { youAreNowFacingYourNewNeighbor: true };
 

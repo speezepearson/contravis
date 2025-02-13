@@ -7,10 +7,10 @@ import {
   ByDancer,
   DancerState,
   Role,
-  Subroutine,
   DancerKeyframe,
   alignCcw,
   Dance,
+  Call,
 } from "./types";
 import { ccwTowards } from "./util";
 
@@ -192,7 +192,7 @@ export function executeDance({
           const newKfsBeats = newKfs.reduce((t, kf) => t + kf.beats, 0);
           if (newKfsBeats > piece.beats) {
             throw new Error(
-              `dancer ${id} has ${newKfsBeats} beats of keyframes to accomplish but subroutine has only ${piece.beats} beats`
+              `dancer ${id} has ${newKfsBeats} beats of keyframes to accomplish but figure has only ${piece.beats} beats`
             );
           }
           if (newKfsBeats === piece.beats) {
@@ -222,16 +222,16 @@ function errstr(e: unknown): string {
 
 export class CompositionError extends Error {
   partial: ByDancer<List<DancerKeyframe>>;
-  subroutine: Subroutine;
+  call: Call;
 
   constructor(
     message: string,
     partial: ByDancer<List<DancerKeyframe>>,
-    subroutine: Subroutine
+    call: Call
   ) {
     super(message);
     this.name = "CompositionError";
     this.partial = partial;
-    this.subroutine = subroutine;
+    this.call = call;
   }
 }

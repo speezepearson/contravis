@@ -16,7 +16,7 @@ export function CallList({
   setCalls,
   compositionError,
 }: CallListProps) {
-  const curSubroutine = useMemo(() => {
+  const curFigure = useMemo(() => {
     let beatsSoFar = 0;
     for (const [i, f] of calls.entries()) {
       if (!("beats" in f)) continue;
@@ -51,8 +51,8 @@ export function CallList({
           <tr
             key={i}
             style={{
-              fontWeight: curSubroutine === i ? "bold" : "normal",
-              color: call === compositionError?.subroutine ? "red" : "",
+              fontWeight: curFigure === i ? "bold" : "normal",
+              color: call === compositionError?.call ? "red" : "",
             }}
           >
             <td>{timestamps.get(i)}</td>
@@ -63,7 +63,7 @@ export function CallList({
                 : "youAreNowFacingYourNewNeighbor" in call
                 ? `You are now facing your new neighbor!`
                 : call.name}
-              {call === compositionError?.subroutine &&
+              {call === compositionError?.call &&
                 ` -- ${compositionError.message}`}
             </td>
             <td>

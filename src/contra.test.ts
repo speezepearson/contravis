@@ -270,6 +270,13 @@ describe("swing", () => {
       ccw: -2,
     });
   });
+
+  test("throws if no candidates to swing with", () => {
+    const state = initBeckett(1).filter((_, id) => id !== "L0");
+    expect(() => swing({ beats: 8 }).buildKeyframes(state)).toThrow(
+      /nobody to swing with/
+    );
+  });
 });
 
 describe("robinsChainAcross", () => {
