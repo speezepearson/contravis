@@ -249,7 +249,7 @@ describe("swing", () => {
     const state = initImproper(1);
     console.log("L0 starts at", state.get("L0"));
     const end = deepRound(
-      swing({ withYour: "neighbor", beats: 8 })
+      swing({ beats: 8 })
         .buildKeyframes(state)
         .map((kfs) => kfs.last()?.end)
     );
@@ -270,19 +270,12 @@ describe("swing", () => {
       ccw: -2,
     });
   });
-
-  test("throws if dancers are across the set", () => {
-    const state = initBeckett(1);
-    expect(() =>
-      swing({ withYour: "neighbor", beats: 8 }).buildKeyframes(state)
-    ).toThrow(/across the set/);
-  });
 });
 
 describe("robinsChainAcross", () => {
   test("smoke", () => {
     const state = initBeckett(1);
-    const end = robinsChain({ toYour: "neighbor" })
+    const end = robinsChain()
       .buildKeyframes(state)
       .map((kfs) => kfs.last()?.end);
     expect(end.get("L0") ?? state.get("L0")).toEqual({
