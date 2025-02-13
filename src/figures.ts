@@ -13,6 +13,7 @@ import {
 import {
   ccwTowards,
   getTopoSquare,
+  isFacing,
   mathmod,
   sameSideOfSet,
   vavg,
@@ -33,8 +34,12 @@ export const swing: KeyframeFunc<void> = (cur, { beats }) =>
     const maybeCounterpart = cur
       .entrySeq()
       .filter(
-        ([, { role, posn }]) =>
-          role !== dancer.role && sameSideOfSet(posn, dancer.posn)
+        ([, cp]) =>
+          cp.role !== dancer.role &&
+          sameSideOfSet(cp.posn, dancer.posn) &&
+          cp.posn.distance(dancer.posn) < 4 &&
+          isFacing(dancer, cp.posn) &&
+          isFacing(cp, dancer.posn)
       )
       .toList()
       .sortBy(

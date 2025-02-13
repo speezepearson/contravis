@@ -63,3 +63,12 @@ export function getTopoSquare(
 export function sameSideOfSet(p1: Victor, p2: Victor): boolean {
   return p1.x * p2.x > 0;
 }
+
+export function isFacing({ posn, ccw }: DancerState, dst: Victor): boolean {
+  return (
+    dst
+      .clone()
+      .subtract(posn)
+      .dot(new Victor(1, 0).rotate(ccw * 2 * Math.PI)) > 0
+  );
+}
