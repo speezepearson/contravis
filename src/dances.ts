@@ -7,7 +7,7 @@ import {
   passThrough,
   rightLeftThrough,
   ringBalance,
-  robinsChainAcross,
+  robinsChain,
   swing,
 } from "./figures";
 import { Dance } from "./types";
@@ -46,7 +46,7 @@ export function earlyEveningRollaway(): Dance {
       swing({ beats: 12, withYour: "neighbor" }), // "balance and swing" is 16 beats, so swing is only 12
       balance({ withYour: "partner" }),
       rightLeftThrough(),
-      robinsChainAcross({ toYour: "partner" }),
+      robinsChain({ toYour: "partner" }),
       ringBalance(),
       larksRollAway({ your: "neighbor" }),
       { endThatMoveFacing: "partnerward" },

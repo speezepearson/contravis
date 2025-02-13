@@ -3,7 +3,7 @@ import { findPersonInDirection, fwd, partnerward } from "./contra";
 import { LARK, ROBIN, PD_UP, PD_DOWN, DancerState, ByDancer } from "./types";
 import { List, Map } from "immutable";
 import Victor from "victor";
-import { robinsChainAcross, swing } from "./figures";
+import { robinsChain, swing } from "./figures";
 import { initImproper, initBeckett } from "./formations";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -282,7 +282,7 @@ describe("swing", () => {
 describe("robinsChainAcross", () => {
   test("smoke", () => {
     const state = initBeckett(1);
-    const end = robinsChainAcross({ toYour: "neighbor" })
+    const end = robinsChain({ toYour: "neighbor" })
       .buildKeyframes(state)
       .map((kfs) => kfs.last()?.end);
     expect(end.get("L0") ?? state.get("L0")).toEqual({

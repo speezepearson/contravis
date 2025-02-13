@@ -7,7 +7,7 @@ import {
   doSiDo112,
   larksRollAway,
   petronellaSpin,
-  robinsChainAcross,
+  robinsChain,
   ringBalance,
   rightLeftThrough,
   swing,
@@ -81,12 +81,8 @@ export function AddCallForm({ onAdd }: AddCallFormProps) {
         call: ringBalance({ withYour: ["partner", "neighbor"] }),
       },
       {
-        text: "robins chain to your neighbor",
-        call: robinsChainAcross({ toYour: "neighbor" }),
-      },
-      {
-        text: "robins chain to your partner",
-        call: robinsChainAcross({ toYour: "partner" }),
+        text: "robins chain",
+        call: robinsChain(),
       },
       {
         text: "larks roll away your partner",

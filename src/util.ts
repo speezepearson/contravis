@@ -59,3 +59,7 @@ export function getTopoSquare(
     opposite: { id: oppositeId, state: opposite },
   };
 }
+
+export function sameSideOfSet(p1: Victor, p2: Victor): boolean {
+  return p1.x * p2.x > 0;
+}

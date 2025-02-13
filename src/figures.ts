@@ -10,8 +10,23 @@ import {
   DancerKeyframe,
   alignCcw,
 } from "./types";
-import { ccwTowards, getTopoSquare, mathmod, vavg } from "./util";
-import { bak, fwd, left, move, moves, partnerward, right } from "./contra";
+import {
+  ccwTowards,
+  getTopoSquare,
+  mathmod,
+  sameSideOfSet,
+  vavg,
+} from "./util";
+import {
+  bak,
+  crossSet,
+  fwd,
+  left,
+  move,
+  moves,
+  partnerward,
+  right,
+} from "./contra";
 
 export function swing({
   beats,
@@ -33,7 +48,7 @@ export function swing({
         }
         const counterpart = cur.get(counterpartId)!;
         // if (id === "L0") debugger;
-        if (!(dancer.posn.x < 0 === counterpart.posn.x < 0)) {
+        if (!sameSideOfSet(dancer.posn, counterpart.posn)) {
           throw new Error(
             `dancer ${id} wants to swing with ${counterpartId}, but they're across the set (${dancer.posn} vs ${counterpart.posn})`
           );
@@ -68,13 +83,9 @@ export function swing({
   };
 }
 
-export function robinsChainAcross({
-  toYour,
-}: {
-  toYour: keyof DancerState["labels"];
-}): Subroutine {
+export function robinsChain(): Subroutine {
   return {
-    name: `robins chain to your ${toYour}`,
+    name: `robins chain`,
     beats: 8,
     buildKeyframes: (cur) =>
       cur.map((dancer, id) => {
@@ -85,18 +96,27 @@ export function robinsChainAcross({
             { beats: 2, dccw: 1 },
           ]);
         } else {
-          const turnerId = dancer.labels[toYour];
-          if (!turnerId) {
+          const expectedTurnerPosn = dancer.posn
+            .clone()
+            .add(crossSet(dancer, 2));
+          const possibleTurners = cur
+            .entrySeq()
+            .filter(
+              ([, { role, posn }]) =>
+                role === LARK &&
+                !sameSideOfSet(posn, dancer.posn) &&
+                posn.distance(expectedTurnerPosn) < 0.5
+            )
+            .toList();
+          if (possibleTurners.isEmpty()) {
+            throw new Error(`${id} has nobody to chain to`);
+          }
+          if (possibleTurners.size > 1) {
             throw new Error(
-              `robin ${id} failed to find their ${toYour} to chain with`
+              `${id} is unsure who to chain to: options ${possibleTurners}`
             );
           }
-          const turner = cur.get(turnerId)!;
-          if (turner.posn.x < 0 === dancer.posn.x < 0) {
-            throw new Error(
-              `robin ${id} wants to chain to ${turnerId}, but they're not across the set`
-            );
-          }
+          const [, turner] = possibleTurners.first()!;
 
           return moves(dancer, [
             { beats: 2, dx: fwd(1).add(left(1.3)), dccw: 1 / 4 },
