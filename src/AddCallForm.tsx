@@ -153,6 +153,7 @@ export function AddCallForm({ onAdd }: AddCallFormProps) {
     <div>
       <input
         value={search}
+        placeholder="search"
         onChange={(e) => setSearch(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
