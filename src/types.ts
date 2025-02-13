@@ -50,3 +50,8 @@ export type Call =
   | Subroutine
   | { endThatMoveFacing: InstructionDir }
   | { youAreNowFacingYourNewNeighbor: true };
+
+export interface Dance {
+  readonly init: ByDancer<DancerState>;
+  readonly calls: List<Call>;
+}

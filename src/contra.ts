@@ -9,8 +9,8 @@ import {
   Role,
   Subroutine,
   DancerKeyframe,
-  Call,
   alignCcw,
+  Dance,
 } from "./types";
 import { ccwTowards } from "./util";
 
@@ -160,15 +160,12 @@ export function fudgeFacing(
   });
 }
 
-export function compose(
-  init: ByDancer<DancerState>,
-  pieces: Iterable<Call>
-): ByDancer<List<DancerKeyframe>> {
+export function executeDance({ init, calls }: Dance) {
   let res: ByDancer<List<DancerKeyframe>> = init.map((dancer) =>
     List.of({ beats: 0, end: dancer })
   );
 
-  for (const piece of pieces) {
+  for (const piece of calls) {
     const cur = res.size === 0 ? init : getCurState(res);
     if ("endThatMoveFacing" in piece) {
       res = fudgeFacing(res, piece.endThatMoveFacing);

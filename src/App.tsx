@@ -4,13 +4,12 @@ import anime from "animejs";
 
 import { List, Map } from "immutable";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { compose, CompositionError } from "./contra";
-import { Call, DancerKeyframe, DancerState, ByDancer } from "./types";
+import { executeDance, CompositionError } from "./contra";
+import { DancerKeyframe, DancerState, ByDancer, Dance } from "./types";
 import { LARK, DancerId } from "./types";
 import { earlyEveningRollaway } from "./dances";
 import { Lark, Robin } from "./Dancers";
 import { CallList } from "./CallList";
-import { initImproper } from "./formations";
 
 const pxPerPace = 50;
 
@@ -33,34 +32,32 @@ function ContraDance() {
     Map()
   );
 
-  const init = useMemo(() => initImproper(4), []);
-
-  const [calls, setCalls] = useState<List<Call>>(earlyEveningRollaway().calls);
+  const [dance, setDance] = useState<Dance>(earlyEveningRollaway());
   const [keyframes, compositionError]: [
     ByDancer<List<DancerKeyframe>>,
     CompositionError | null
   ] = useMemo(() => {
     try {
-      return [compose(init, calls), null];
+      return [executeDance(dance), null];
     } catch (e) {
       if (e instanceof CompositionError) {
         return [e.partial, e];
       }
       throw e;
     }
-  }, [init, calls]);
+  }, [dance]);
 
   const setDancerRef = useMemo(
     () =>
       Map(
-        init.keySeq().map((id) => [
+        dance.init.keySeq().map((id) => [
           id,
           (el: SVGSVGElement | null) => {
             setDancerRefs((rs) => rs.set(id, el));
           },
         ])
       ),
-    [init]
+    [dance.init]
   );
 
   const totalBeats =
@@ -178,15 +175,15 @@ function ContraDance() {
       <div style={{ display: "flex", flexDirection: "row" }}>
         <div style={{ flex: 1 }}>
           <CallList
-            calls={calls}
-            setCalls={setCalls}
+            calls={dance.calls}
+            setCalls={(calls) => setDance((dance) => ({ ...dance, calls }))}
             highlightAtBeat={beat}
             compositionError={compositionError}
           />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ position: "relative" }}>
-            {init.entrySeq().map(([id, dancer]) => (
+            {dance.init.entrySeq().map(([id, dancer]) => (
               <div
                 key={id}
                 style={{ position: "absolute", top: 0, left: 0 }}

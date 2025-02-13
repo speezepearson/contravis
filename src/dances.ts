@@ -10,18 +10,13 @@ import {
   robinsChainAcross,
   swing,
 } from "./figures";
-import { Call } from "./types";
-import { DancerState } from "./types";
-
-import { ByDancer } from "./types";
+import { Dance } from "./types";
 import { initImproper } from "./formations";
+
 /**
  * https://contradb.com/dances/2593
  */
-export function earlyEveningRollaway(): {
-  init: ByDancer<DancerState>;
-  calls: List<Call>;
-} {
+export function earlyEveningRollaway(): Dance {
   /* ContraDB:
   formation: improper
 
