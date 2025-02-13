@@ -28,36 +28,34 @@ import {
   right,
 } from "./contra";
 
-export function swing({
-  beats,
-  withYour,
-}: {
-  beats: number;
-  withYour: keyof DancerState["labels"];
-}): Subroutine {
+export function swing({ beats }: { beats: number }): Subroutine {
   return {
-    name: `swing your ${withYour}`,
+    name: `swing`,
     beats,
     buildKeyframes: (cur) =>
       cur.map((dancer, id) => {
-        const counterpartId = dancer.labels[withYour];
-        if (!counterpartId) {
-          throw new Error(
-            `dancer ${id} failed to find their ${withYour} to swing with`
-          );
+        const maybeCounterpart = cur
+          .entrySeq()
+          .filter(
+            ([, { role, posn }]) =>
+              role !== dancer.role && sameSideOfSet(posn, dancer.posn)
+          )
+          .toList()
+          .sortBy(
+            ([cpid, { posn }]) =>
+              posn.distance(dancer.posn) +
+              (cpid === dancer.labels.partner
+                ? 0
+                : cpid === dancer.labels.neighbor
+                ? 0.2
+                : 10)
+          )
+          .first();
+        if (!maybeCounterpart) {
+          throw new Error(`${id} has nobody to swing with`);
         }
-        const counterpart = cur.get(counterpartId)!;
-        // if (id === "L0") debugger;
-        if (!sameSideOfSet(dancer.posn, counterpart.posn)) {
-          throw new Error(
-            `dancer ${id} wants to swing with ${counterpartId}, but they're across the set (${dancer.posn} vs ${counterpart.posn})`
-          );
-        }
-        if (counterpart.role === dancer.role) {
-          throw new Error(
-            `dancer ${id} wants to swing with ${counterpartId}, but they're the same role`
-          );
-        }
+        const [, counterpart] = maybeCounterpart;
+
         const extraCcw = -(dancer.role === ROBIN ? 1 / 2 : 0);
         const swapPosns =
           (dancer.posn.x < 0 !== (dancer.role === LARK)) !==
@@ -268,42 +266,43 @@ export function petronellaSpin({
   };
 }
 
-export function balance({
-  withYour,
-}: {
-  withYour: keyof DancerState["labels"];
-}): Subroutine {
+export function balance(): Subroutine {
   return {
-    name: `balance your ${withYour}`,
+    name: `balance`,
     beats: 4,
-    buildKeyframes: (cur) => balanceKfs(cur, { withYour }),
+    buildKeyframes: (cur) =>
+      cur.map((dancer, id) => {
+        const expectedCounterpartPosn = move(dancer, { dx: fwd(2) }).posn;
+        const possibleCounterparts = cur
+          .entrySeq()
+          .filter(
+            ([, { posn }]) => posn.distance(expectedCounterpartPosn) < 0.5
+          )
+          .toList();
+        if (possibleCounterparts.isEmpty()) {
+          throw new Error(`${id} has nobody to balance with`);
+        }
+        if (possibleCounterparts.size > 1) {
+          throw new Error(
+            `dancer ${id} isn't sure who to balance with: options ${possibleCounterparts}`
+          );
+        }
+        const [, counterpart] = possibleCounterparts.first()!;
+
+        return moves(dancer, [
+          {
+            beats: 1,
+            x: vavg(dancer.posn, counterpart.posn, [3, 1]),
+          },
+          {
+            beats: 1,
+            x: vavg(dancer.posn, counterpart.posn, [3, 1]),
+          },
+          { beats: 1 },
+          { beats: 1 },
+        ]);
+      }),
   };
-}
-export function balanceKfs(
-  state: ByDancer<DancerState>,
-  { withYour }: { withYour: keyof DancerState["labels"] }
-): ByDancer<List<DancerKeyframe>> {
-  return state.map((dancer, id) => {
-    const counterpartId = dancer.labels[withYour];
-    if (!counterpartId) {
-      throw new Error(
-        `dancer ${id} failed to find their ${withYour} to box with`
-      );
-    }
-    const counterpart = state.get(counterpartId)!;
-    return moves(dancer, [
-      {
-        beats: 1,
-        x: vavg(dancer.posn, counterpart.posn, [3, 1]),
-      },
-      {
-        beats: 1,
-        x: vavg(dancer.posn, counterpart.posn, [3, 1]),
-      },
-      { beats: 1 },
-      { beats: 1 },
-    ]);
-  });
 }
 
 export function boxTheGnat({

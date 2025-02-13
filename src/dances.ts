@@ -42,15 +42,15 @@ export function earlyEveningRollaway(): Dance {
   return {
     init: initImproper(4),
     calls: List([
-      balance({ withYour: "neighbor" }),
-      swing({ beats: 12, withYour: "neighbor" }), // "balance and swing" is 16 beats, so swing is only 12
-      balance({ withYour: "partner" }),
+      balance(),
+      swing({ beats: 12 }), // "balance and swing" is 16 beats, so swing is only 12
+      balance(),
       rightLeftThrough(),
-      robinsChain({ toYour: "partner" }),
+      robinsChain(),
       ringBalance(),
       larksRollAway({ your: "neighbor" }),
       { endThatMoveFacing: "partnerward" },
-      swing({ beats: 8, withYour: "partner" }),
+      swing({ beats: 8 }),
       circle({
         handedness: "left",
         spots: 3,

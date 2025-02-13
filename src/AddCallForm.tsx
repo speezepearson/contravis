@@ -33,36 +33,20 @@ export function AddCallForm({ onAdd }: AddCallFormProps) {
   const calls: List<{ text: string; call: Call }> = useMemo(() => {
     return List([
       {
-        text: "balance with your neighbor",
-        call: balance({ withYour: "neighbor" }),
+        text: "balance",
+        call: balance(),
       },
       {
-        text: "balance with your partner",
-        call: balance({ withYour: "partner" }),
+        text: "swing (8)",
+        call: swing({ beats: 8 }),
       },
       {
-        text: "swing your neighbor (8)",
-        call: swing({ beats: 8, withYour: "neighbor" }),
+        text: "swing (12)",
+        call: swing({ beats: 8 }),
       },
       {
-        text: "swing your partner (8)",
-        call: swing({ beats: 8, withYour: "partner" }),
-      },
-      {
-        text: "swing your neighbor (12)",
-        call: swing({ beats: 12, withYour: "neighbor" }),
-      },
-      {
-        text: "swing your partner (12)",
-        call: swing({ beats: 12, withYour: "partner" }),
-      },
-      {
-        text: "swing your neighbor (16)",
-        call: swing({ beats: 16, withYour: "neighbor" }),
-      },
-      {
-        text: "swing your partner (16)",
-        call: swing({ beats: 16, withYour: "partner" }),
+        text: "swing (16)",
+        call: swing({ beats: 8 }),
       },
       {
         text: "box the gnat with your neighbor",
