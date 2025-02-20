@@ -68,7 +68,7 @@ export type Figure = { beats: number } & (
   | {
       name: "petronellaSpin";
     }
-  | { name: "boxTheGnat"; whom: "partner" | "neighbor" }
+  | ({ name: "boxTheGnat" } & Other)
   | { name: "rightLeftThrough" }
   | ({ name: "larksRollAway" } & Other)
   | {

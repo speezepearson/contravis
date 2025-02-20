@@ -8,16 +8,20 @@ const callMenu = List<{ text: string; call: Call }>([
     call: { name: "balance", beats: 8 } as Call,
   },
   {
-    text: "swing",
-    call: { name: "swing", beats: 8 },
+    text: "partner swing",
+    call: { name: "swing", beats: 8, relation: "partner" },
   },
   {
-    text: "box the gnat with your partner",
-    call: { name: "boxTheGnat", beats: 4, whom: "partner" },
+    text: "neighbor swing",
+    call: { name: "swing", beats: 8, relation: "neighbor" },
   },
   {
-    text: "box the gnat with your neighbor",
-    call: { name: "boxTheGnat", beats: 4, whom: "neighbor" },
+    text: "partner box the gnat",
+    call: { name: "boxTheGnat", beats: 4, relation: "partner" },
+  },
+  {
+    text: "neighbor box the gnat",
+    call: { name: "boxTheGnat", beats: 4, relation: "neighbor" },
   },
   {
     text: "petronella spin",
@@ -31,24 +35,36 @@ const callMenu = List<{ text: string; call: Call }>([
     call: { name: "ringBalance", beats: 4 },
   },
   {
-    text: "robins chain",
-    call: { name: "robinsChain", beats: 8 },
+    text: "robins chain to your partner",
+    call: { name: "robinsChain", beats: 8, relation: "partner" },
   },
   {
-    text: "larks roll away partner",
-    call: { name: "larksRollAway", beats: 4, whom: "partner" },
+    text: "robins chain to your neighbor",
+    call: { name: "robinsChain", beats: 8, relation: "neighbor" },
   },
   {
-    text: "larks roll away neighbor",
-    call: { name: "larksRollAway", beats: 4, whom: "neighbor" },
+    text: "larks roll away your partner",
+    call: { name: "larksRollAway", beats: 4, relation: "partner" },
   },
   {
-    text: "do si do once",
-    call: { name: "doSiDo1", beats: 8 },
+    text: "larks roll away your neighbor",
+    call: { name: "larksRollAway", beats: 4, relation: "neighbor" },
   },
   {
-    text: "do si do 1 1/2",
-    call: { name: "doSiDo112", beats: 8 },
+    text: "do si do once with your partner",
+    call: { name: "doSiDo1", beats: 8, relation: "partner" },
+  },
+  {
+    text: "do si do once with your neighbor",
+    call: { name: "doSiDo1", beats: 8, relation: "neighbor" },
+  },
+  {
+    text: "do si do 1 1/2 with your partner",
+    call: { name: "doSiDo112", beats: 8, relation: "partner" },
+  },
+  {
+    text: "do si do 1 1/2 with your neighbor",
+    call: { name: "doSiDo112", beats: 8, relation: "neighbor" },
   },
   {
     text: "circle left 3",
