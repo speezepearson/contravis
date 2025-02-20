@@ -4,115 +4,88 @@ import { PD_DOWN } from "./types";
 import { ROBIN } from "./types";
 import { DancerState } from "./types";
 import Victor from "victor";
-import { ByDancer } from "./types";
+import { ByProto } from "./types";
 import { Map } from "immutable";
+import { LENGTH_PERIOD } from "./util";
 
-export function initImproper(nHandsFours: number): ByDancer<DancerState> {
-  return Map(
-    Array.from({ length: nHandsFours }).flatMap((_, h4i) => {
-      const [l1, r1, l2, r2] = [
-        `L${h4i * 2}`,
-        `R${h4i * 2}`,
-        `L${h4i * 2 + 1}`,
-        `R${h4i * 2 + 1}`,
-      ];
-      return [
-        [
-          l1,
-          {
-            role: LARK,
-            progressDirection: PD_UP,
-            posn: new Victor(-1, h4i * 4),
-            ccw: 1 / 4,
-            labels: { partner: r1, neighbor: r2 },
-          },
-        ],
-        [
-          r1,
-          {
-            role: ROBIN,
-            progressDirection: PD_UP,
-            posn: new Victor(1, h4i * 4),
-            ccw: 1 / 4,
-            labels: { partner: l1, neighbor: l2 },
-          },
-        ],
-        [
-          l2,
-          {
-            role: LARK,
-            progressDirection: PD_DOWN,
-            posn: new Victor(1, h4i * 4 + 2),
-            ccw: -1 / 4,
-            labels: { partner: r2, neighbor: r1 },
-          },
-        ],
-        [
-          r2,
-          {
-            role: ROBIN,
-            progressDirection: PD_DOWN,
-            posn: new Victor(-1, h4i * 4 + 2),
-            ccw: -1 / 4,
-            labels: { partner: l2, neighbor: l1 },
-          },
-        ],
-      ];
-    })
-  );
+export function initImproper(): ByProto<DancerState> {
+  return Map([
+    [
+      "L1",
+      {
+        role: LARK,
+        progressDirection: PD_UP,
+        posn: new Victor(-LENGTH_PERIOD / 4, 0),
+        ccw: 1 / 4,
+      },
+    ],
+    [
+      "R1",
+      {
+        role: ROBIN,
+        progressDirection: PD_UP,
+        posn: new Victor(LENGTH_PERIOD / 4, 0),
+        ccw: 1 / 4,
+      },
+    ],
+    [
+      "L2",
+      {
+        role: LARK,
+        progressDirection: PD_DOWN,
+        posn: new Victor(LENGTH_PERIOD / 4, LENGTH_PERIOD / 2),
+        ccw: -1 / 4,
+      },
+    ],
+    [
+      "R2",
+      {
+        role: ROBIN,
+        progressDirection: PD_DOWN,
+        posn: new Victor(-LENGTH_PERIOD / 4, LENGTH_PERIOD / 2),
+        ccw: -1 / 4,
+      },
+    ],
+  ]);
 }
 
-export function initBeckett(nHandsFours: number): ByDancer<DancerState> {
-  return Map(
-    Array.from({ length: nHandsFours }).flatMap((_, h4i) => {
-      const [l1, r1, l2, r2] = [
-        `L${h4i * 2}`,
-        `R${h4i * 2}`,
-        `L${h4i * 2 + 1}`,
-        `R${h4i * 2 + 1}`,
-      ];
-      return [
-        [
-          l1,
-          {
-            role: LARK,
-            progressDirection: PD_UP,
-            posn: new Victor(-1, h4i * 4 + 2),
-            ccw: 0,
-            labels: { partner: r1, neighbor: r2 },
-          },
-        ],
-        [
-          r1,
-          {
-            role: ROBIN,
-            progressDirection: PD_UP,
-            posn: new Victor(-1, h4i * 4),
-            ccw: 0,
-            labels: { partner: l1, neighbor: l2 },
-          },
-        ],
-        [
-          l2,
-          {
-            role: LARK,
-            progressDirection: PD_DOWN,
-            posn: new Victor(1, h4i * 4),
-            ccw: 1 / 2,
-            labels: { partner: r2, neighbor: r1 },
-          },
-        ],
-        [
-          r2,
-          {
-            role: ROBIN,
-            progressDirection: PD_DOWN,
-            posn: new Victor(1, h4i * 4 + 2),
-            ccw: 1 / 2,
-            labels: { partner: l2, neighbor: l1 },
-          },
-        ],
-      ];
-    })
-  );
+export function initBeckett(): ByProto<DancerState> {
+  return Map([
+    [
+      "L1",
+      {
+        role: LARK,
+        progressDirection: PD_UP,
+        posn: new Victor(-LENGTH_PERIOD / 4, LENGTH_PERIOD / 2),
+        ccw: 0,
+      },
+    ],
+    [
+      "R1",
+      {
+        role: ROBIN,
+        progressDirection: PD_UP,
+        posn: new Victor(-LENGTH_PERIOD / 4, 0),
+        ccw: 0,
+      },
+    ],
+    [
+      "L2",
+      {
+        role: LARK,
+        progressDirection: PD_DOWN,
+        posn: new Victor(LENGTH_PERIOD / 4, 0),
+        ccw: 1 / 2,
+      },
+    ],
+    [
+      "R2",
+      {
+        role: ROBIN,
+        progressDirection: PD_DOWN,
+        posn: new Victor(LENGTH_PERIOD / 4, LENGTH_PERIOD / 2),
+        ccw: 1 / 2,
+      },
+    ],
+  ]);
 }

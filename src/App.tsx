@@ -5,11 +5,18 @@ import anime from "animejs";
 import { List, Map } from "immutable";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { executeDance, CompositionError } from "./contra";
-import { DancerKeyframe, DancerState, ByDancer, Dance } from "./types";
-import { LARK, DancerId } from "./types";
+import {
+  DancerKeyframe,
+  DancerState,
+  ByProto,
+  Dance,
+  stringifyDancerId,
+} from "./types";
+import { LARK, DancerIdStr } from "./types";
 import { earlyEveningRollaway } from "./dances";
 import { Lark, Robin } from "./Dancers";
 import { CallList } from "./CallList";
+import { h4Offset, LENGTH_PERIOD } from "./util";
 
 const pxPerPace = 50;
 
@@ -28,13 +35,23 @@ function ContraDance() {
     [beatsPerSec]
   );
 
-  const [dancerRefs, setDancerRefs] = useState<ByDancer<SVGSVGElement | null>>(
-    Map()
+  const [minH4Id, setMinH4Id] = useState(0);
+  const [maxH4Id, setMaxH4Id] = useState(0);
+  const showH4Ids = useMemo(
+    () =>
+      List(
+        Array.from({ length: maxH4Id + 1 - minH4Id }, (_, i) => minH4Id + i)
+      ),
+    [minH4Id, maxH4Id]
   );
+
+  const [dancerRefs, setDancerRefs] = useState<
+    Map<DancerIdStr, SVGSVGElement | null>
+  >(Map());
 
   const [dance, setDance] = useState<Dance>(earlyEveningRollaway());
   const [keyframes, compositionError]: [
-    ByDancer<List<DancerKeyframe>>,
+    ByProto<List<DancerKeyframe>>,
     CompositionError | null
   ] = useMemo(() => {
     try {
@@ -47,18 +64,24 @@ function ContraDance() {
     }
   }, [dance]);
 
-  const setDancerRef = useMemo(
-    () =>
-      Map(
-        dance.init.keySeq().map((id) => [
-          id,
-          (el: SVGSVGElement | null) => {
-            setDancerRefs((rs) => rs.set(id, el));
-          },
-        ])
-      ),
-    [dance.init]
-  );
+  const setDancerRef: Map<DancerIdStr, (el: SVGSVGElement | null) => void> =
+    useMemo(
+      () =>
+        Map(
+          keyframes.entrySeq().flatMap(([protoId]) =>
+            showH4Ids.map((h4Id) => {
+              const idStr = stringifyDancerId({ protoId, h4Id });
+              return [
+                idStr,
+                (el: SVGSVGElement | null) => {
+                  setDancerRefs((rs) => rs.set(idStr, el));
+                },
+              ];
+            })
+          )
+        ),
+      [keyframes, showH4Ids]
+    );
 
   const totalBeats =
     keyframes
@@ -72,38 +95,41 @@ function ContraDance() {
   useEffect(() => {
     const prev = anim.current;
     const wasPaused = prev.paused;
-    // debugger;
     prev.pause();
 
     anim.current = anime.timeline({
       duration: beatsToMs(totalBeats),
       easing: "linear",
       autoplay: false,
+      loop: true,
       update: (anim) => {
         setBeat((anim.progress / 100) * totalBeats);
       },
     });
 
-    for (const [id, kfs] of keyframes.entries()) {
-      anim.current.add(
-        {
-          targets: dancerRefs.get(id),
-          keyframes: kfs
-            .map((kf) => ({
-              ...animeProps(kf.end),
-              duration: beatsToMs(kf.beats),
-            }))
-            .toArray(),
-        },
-        0
-      );
+    for (const [protoId, kfs] of keyframes.entries()) {
+      for (const h4Id of showH4Ids) {
+        const idStr = stringifyDancerId({ protoId, h4Id });
+        anim.current.add(
+          {
+            targets: dancerRefs.get(idStr),
+            keyframes: kfs
+              .map((kf) => ({
+                ...animeProps(h4Offset(kf.end, h4Id)),
+                duration: beatsToMs(kf.beats),
+              }))
+              .toArray(),
+          },
+          0
+        );
+      }
     }
 
     anim.current.seek(prev.currentTime);
     if (!wasPaused) {
       anim.current.play();
     }
-  }, [dancerRefs, keyframes, totalBeats, beatsToMs]);
+  }, [dancerRefs, keyframes, totalBeats, beatsToMs, showH4Ids]);
 
   const [beat, setBeat] = useState(0);
   useEffect(() => {
@@ -124,22 +150,45 @@ function ContraDance() {
     }
   }, [beat, totalBeats, beatsToMs]);
 
-  const [focusedDancerId, setFocusedDancerId] = useState<DancerId | null>(null);
-  const focusedDancerBoundingKeyframes:
-    | [DancerKeyframe | null, DancerKeyframe | null]
-    | null = useMemo(() => {
-    if (!focusedDancerId) return null;
-    let t = 0;
-    let prev = null;
-    for (const kf of keyframes.get(focusedDancerId, [])) {
-      if (t + kf.beats > beat) {
-        return [prev, kf];
-      }
-      t += kf.beats;
-      prev = kf;
-    }
-    return [prev, null];
-  }, [focusedDancerId, keyframes, beat]);
+  useEffect(() => {
+    setMinH4Id(
+      Math.floor(
+        keyframes
+          .valueSeq()
+          .map((d) => d.last()!.end.posn.y)
+          .min()! / LENGTH_PERIOD
+      ) - 2
+    );
+  }, [keyframes, beat]);
+  useEffect(() => {
+    setMaxH4Id(
+      Math.ceil(
+        keyframes
+          .valueSeq()
+          .map((d) => d.last()!.end.posn.y)
+          .max()! / LENGTH_PERIOD
+      ) + 2
+    );
+  }, [keyframes, beat]);
+
+  // const [focusedDancerId, setFocusedDancerId] = useState<DancerIdStr | null>(
+  //   null
+  // );
+  // const focusedDancerBoundingKeyframes:
+  //   | [DancerKeyframe | null, DancerKeyframe | null]
+  //   | null = useMemo(() => {
+  //   if (!focusedDancerId) return null;
+  //   let t = 0;
+  //   let prev = null;
+  //   for (const kf of keyframes.get(focusedDancerId, [])) {
+  //     if (t + kf.beats > beat) {
+  //       return [prev, kf];
+  //     }
+  //     t += kf.beats;
+  //     prev = kf;
+  //   }
+  //   return [prev, null];
+  // }, [focusedDancerId, keyframes, beat]);
 
   return (
     <>
@@ -169,12 +218,12 @@ function ContraDance() {
         Current beat:
         {beat.toFixed(0)} {/*curKeyframe.happening*/}
       </div>
-      {focusedDancerId && (
+      {/* {focusedDancerId && (
         <div>
           <div>Focused Dancer: {focusedDancerId}</div>
           <div>Keyframes: {JSON.stringify(focusedDancerBoundingKeyframes)}</div>
         </div>
-      )}
+      )} */}
       <div style={{ display: "flex", flexDirection: "row" }}>
         <div style={{ flex: 1 }}>
           <CallList
@@ -185,34 +234,54 @@ function ContraDance() {
           />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ position: "relative" }}>
-            {dance.init.entrySeq().map(([id, dancer]) => (
-              <div
-                key={id}
-                style={{ position: "absolute", top: 0, left: 0 }}
-                onClick={() => setFocusedDancerId(id)}
-              >
-                {dancer.role === LARK ? (
-                  <Lark
-                    ref={setDancerRef.get(id)}
-                    label={id}
-                    fill={
-                      dancer.progressDirection === "up" ? "#00000044" : "none"
-                    }
-                    pxPerPace={pxPerPace}
-                  />
-                ) : (
-                  <Robin
-                    ref={setDancerRef.get(id)}
-                    label={id}
-                    fill={
-                      dancer.progressDirection === "up" ? "#00000044" : "none"
-                    }
-                    pxPerPace={pxPerPace}
-                  />
-                )}
-              </div>
-            ))}
+          <div
+            style={{
+              position: "relative",
+              overflow: "hidden",
+              width: 2 * LENGTH_PERIOD * pxPerPace,
+              height: 1.5 * LENGTH_PERIOD * pxPerPace,
+              border: "1px solid black",
+            }}
+          >
+            {dance.init.entrySeq().flatMap(([protoId, dancer]) =>
+              showH4Ids.map((h4Id) => {
+                return (
+                  <div
+                    key={`${protoId} ${h4Id}`}
+                    style={{ position: "absolute", top: 0, left: 0 }}
+                    // onClick={() => setFocusedDancerId(id)}
+                  >
+                    {dancer.role === LARK ? (
+                      <Lark
+                        ref={setDancerRef.get(
+                          stringifyDancerId({ protoId, h4Id })
+                        )}
+                        label={`${h4Id}`}
+                        fill={
+                          dancer.progressDirection === "up"
+                            ? "#00000044"
+                            : "none"
+                        }
+                        scale={pxPerPace}
+                      />
+                    ) : (
+                      <Robin
+                        ref={setDancerRef.get(
+                          stringifyDancerId({ protoId, h4Id })
+                        )}
+                        label={`${h4Id}`}
+                        fill={
+                          dancer.progressDirection === "up"
+                            ? "#00000044"
+                            : "none"
+                        }
+                        scale={pxPerPace}
+                      />
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

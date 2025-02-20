@@ -121,7 +121,7 @@ function CallElem({ call }: { call: Call }) {
     case "rightLeftThrough":
       return "right left through";
     case "larksRollAway":
-      return "larks roll away";
+      return `larks roll away ${call.whom}`;
     case "circle":
       return "circle";
     case "passThrough":

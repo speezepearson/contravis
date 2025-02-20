@@ -1,10 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { findPersonInDirection, fwd, partnerward } from "./contra";
-import { LARK, ROBIN, PD_UP, PD_DOWN, DancerState, ByDancer } from "./types";
+import { LARK, ROBIN, PD_UP, PD_DOWN } from "./types";
 import { List, Map } from "immutable";
 import Victor from "victor";
 import { robinsChain, swing } from "./figures";
 import { initImproper, initBeckett } from "./formations";
+import { find, find1 } from "./util";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const deepRound = (x: any): any => {
@@ -32,67 +32,44 @@ const deepRound = (x: any): any => {
 };
 
 describe("initImproper", () => {
-  test("gives right dancer ids", () => {
-    expect(initImproper(1).keySeq().toArray()).toEqual([
-      "L0",
-      "R0",
-      "L1",
-      "R1",
-    ]);
-    expect(initImproper(2).keySeq().toArray()).toEqual([
-      "L0",
-      "R0",
-      "L1",
-      "R1",
-      "L2",
-      "R2",
-      "L3",
-      "R3",
-    ]);
-  });
-
   test("smoke", () => {
-    const state = initImproper(1);
+    const state = initImproper();
     expect(state).toEqual(
       Map([
         [
-          "L0",
+          "L1",
           {
             role: LARK,
             progressDirection: PD_UP,
             posn: new Victor(-1, 0),
             ccw: 1 / 4,
-            labels: { partner: "R0", neighbor: "R1" },
-          },
-        ],
-        [
-          "R0",
-          {
-            role: ROBIN,
-            progressDirection: PD_UP,
-            posn: new Victor(1, 0),
-            ccw: 1 / 4,
-            labels: { partner: "L0", neighbor: "L1" },
-          },
-        ],
-        [
-          "L1",
-          {
-            role: LARK,
-            progressDirection: PD_DOWN,
-            posn: new Victor(1, 2),
-            ccw: -1 / 4,
-            labels: { partner: "R1", neighbor: "R0" },
           },
         ],
         [
           "R1",
           {
             role: ROBIN,
+            progressDirection: PD_UP,
+            posn: new Victor(1, 0),
+            ccw: 1 / 4,
+          },
+        ],
+        [
+          "L2",
+          {
+            role: LARK,
+            progressDirection: PD_DOWN,
+            posn: new Victor(1, 2),
+            ccw: -1 / 4,
+          },
+        ],
+        [
+          "R2",
+          {
+            role: ROBIN,
             progressDirection: PD_DOWN,
             posn: new Victor(-1, 2),
             ccw: -1 / 4,
-            labels: { partner: "L1", neighbor: "L0" },
           },
         ],
       ])
@@ -101,62 +78,44 @@ describe("initImproper", () => {
 });
 
 describe("initBeckett", () => {
-  test("gives right dancer ids", () => {
-    expect(initBeckett(1).keySeq().toArray()).toEqual(["L0", "R0", "L1", "R1"]);
-    expect(initBeckett(2).keySeq().toArray()).toEqual([
-      "L0",
-      "R0",
-      "L1",
-      "R1",
-      "L2",
-      "R2",
-      "L3",
-      "R3",
-    ]);
-  });
-
   test("smoke", () => {
-    const state = initBeckett(1);
+    const state = initBeckett();
     expect(state).toEqual(
       Map([
         [
-          "L0",
+          "L1",
           {
             role: LARK,
             progressDirection: PD_UP,
             posn: new Victor(-1, 2),
             ccw: 0,
-            labels: { partner: "R0", neighbor: "R1" },
-          },
-        ],
-        [
-          "R0",
-          {
-            role: ROBIN,
-            progressDirection: PD_UP,
-            posn: new Victor(-1, 0),
-            ccw: 0,
-            labels: { partner: "L0", neighbor: "L1" },
-          },
-        ],
-        [
-          "L1",
-          {
-            role: LARK,
-            progressDirection: PD_DOWN,
-            posn: new Victor(1, 0),
-            ccw: 1 / 2,
-            labels: { partner: "R1", neighbor: "R0" },
           },
         ],
         [
           "R1",
           {
             role: ROBIN,
+            progressDirection: PD_UP,
+            posn: new Victor(-1, 0),
+            ccw: 0,
+          },
+        ],
+        [
+          "L2",
+          {
+            role: LARK,
+            progressDirection: PD_DOWN,
+            posn: new Victor(1, 0),
+            ccw: 1 / 2,
+          },
+        ],
+        [
+          "R2",
+          {
+            role: ROBIN,
             progressDirection: PD_DOWN,
             posn: new Victor(1, 2),
             ccw: 1 / 2,
-            labels: { partner: "L1", neighbor: "L0" },
           },
         ],
       ])
@@ -164,137 +123,108 @@ describe("initBeckett", () => {
   });
 });
 
-describe("findPersonInDirection", () => {
-  test("smoke", () => {
-    const state: ByDancer<DancerState> = Map([
-      [
-        "Alice",
-        {
-          role: ROBIN,
-          progressDirection: PD_UP,
-          posn: new Victor(0, 0),
-          ccw: 0,
-          labels: { partner: "Bob" },
-        },
-      ],
-      [
-        "Bob",
-        {
-          role: LARK,
-          progressDirection: PD_UP,
-          posn: new Victor(1, 0),
-          ccw: 1 / 2,
-          labels: { partner: "Alice" },
-        },
-      ],
-    ]);
-    const targets = findPersonInDirection(state, () => new Victor(1, 0));
-    expect(targets.get("Alice")).toBe("Bob");
-    expect(targets.get("Bob")).toBe("Alice");
-  });
-
+describe("find1", () => {
   test("improper", () => {
-    const state = initImproper(1);
-    const partners = findPersonInDirection(state, (dancer) =>
-      partnerward(dancer, 2)
-    );
-    expect(partners.get("L0")).toBe("R0");
-    expect(partners.get("R0")).toBe("L0");
-    expect(partners.get("L1")).toBe("R1");
-    expect(partners.get("R1")).toBe("L1");
+    const state = initImproper();
+    const partner = find1(state, "L1", "towardsYourPartner");
+    expect(partner).toEqual([{ h4Id: 0, protoId: "R1" }, state.get("R1")!]);
 
-    const neighbors = findPersonInDirection(state, () => fwd(2));
-    expect(neighbors.get("L0")).toBe("R1");
-    expect(neighbors.get("R0")).toBe("L1");
-    expect(neighbors.get("L1")).toBe("R0");
-    expect(neighbors.get("R1")).toBe("L0");
-
-    const opposites = findPersonInDirection(state, (dancer) =>
-      fwd(2).add(partnerward(dancer, 2))
-    );
-    expect(opposites.get("L0")).toBe("L1");
-    expect(opposites.get("R0")).toBe("R1");
-    expect(opposites.get("L1")).toBe("L0");
-    expect(opposites.get("R1")).toBe("R0");
+    const neighbor = find1(state, "L1", "towardsYourNeighbor");
+    expect(neighbor).toEqual([{ h4Id: 0, protoId: "R2" }, state.get("R2")!]);
   });
 
   test("beckett", () => {
-    const state = initBeckett(2);
-    const partners = findPersonInDirection(state, (dancer) =>
-      partnerward(dancer, 2)
-    );
-    expect(partners.get("L0")).toBe("R0");
-    expect(partners.get("R0")).toBe("L0");
-    expect(partners.get("L1")).toBe("R1");
-    expect(partners.get("R1")).toBe("L1");
+    const state = initBeckett();
+    const partner = find1(state, "L1", "towardsYourPartner");
+    expect(partner).toEqual([{ h4Id: 0, protoId: "R1" }, state.get("R1")!]);
 
-    const neighbors = findPersonInDirection(state, () => fwd(2));
-    expect(neighbors.get("L0")).toBe("R1");
-    expect(neighbors.get("R0")).toBe("L1");
-    expect(neighbors.get("L1")).toBe("R0");
-    expect(neighbors.get("R1")).toBe("L0");
+    const neighbor = find1(state, "L1", "towardsYourNeighbor");
+    expect(neighbor).toEqual([{ h4Id: 0, protoId: "R2" }, state.get("R2")!]);
+  });
+});
 
-    const opposites = findPersonInDirection(state, (dancer) =>
-      fwd(2).add(partnerward(dancer, 2))
-    );
-    expect(opposites.get("L0")).toBe("L1");
-    expect(opposites.get("R0")).toBe("R1");
-    expect(opposites.get("L1")).toBe("L0");
-    expect(opposites.get("R1")).toBe("R0");
+describe("find", () => {
+  test("improper", () => {
+    const state = initImproper();
+    const partners = find(state, "towardsYourPartner");
+    expect(partners.get("L1")).toStrictEqual({ h4Id: 0, protoId: "R1" });
+    expect(partners.get("R1")).toStrictEqual({ h4Id: 0, protoId: "L1" });
+    expect(partners.get("L2")).toStrictEqual({ h4Id: 0, protoId: "R2" });
+    expect(partners.get("R2")).toStrictEqual({ h4Id: 0, protoId: "L2" });
+
+    const neighbors = find(state, "inFrontOfYou");
+    expect(neighbors.get("L1")).toStrictEqual({ h4Id: 0, protoId: "R2" });
+    expect(neighbors.get("R1")).toStrictEqual({ h4Id: 0, protoId: "L2" });
+    expect(neighbors.get("L2")).toStrictEqual({ h4Id: 0, protoId: "R1" });
+    expect(neighbors.get("R2")).toStrictEqual({ h4Id: 0, protoId: "L1" });
+  });
+
+  test("beckett", () => {
+    const state = initBeckett();
+    const partners = find(state, "towardsYourPartner");
+    expect(partners.get("L1")).toStrictEqual({ h4Id: 0, protoId: "R1" });
+    expect(partners.get("R1")).toStrictEqual({ h4Id: 0, protoId: "L1" });
+    expect(partners.get("L2")).toStrictEqual({ h4Id: 0, protoId: "R2" });
+    expect(partners.get("R2")).toStrictEqual({ h4Id: 0, protoId: "L2" });
+
+    const neighbors = find(state, "inFrontOfYou");
+    expect(neighbors.get("L1")).toStrictEqual({ h4Id: 0, protoId: "R2" });
+    expect(neighbors.get("R1")).toStrictEqual({ h4Id: 0, protoId: "L2" });
+    expect(neighbors.get("L2")).toStrictEqual({ h4Id: 0, protoId: "R1" });
+    expect(neighbors.get("R2")).toStrictEqual({ h4Id: 0, protoId: "L1" });
   });
 });
 
 describe("swing", () => {
   test("smoke", () => {
-    const state = initImproper(1);
-    console.log("L0 starts at", state.get("L0"));
+    const state = initImproper();
     const end = deepRound(
       swing(state, { beats: 8 }).map((kfs) => kfs.last()?.end)
     );
-    expect(end.get("L0")).toMatchObject({
+    expect(end.get("L1")).toMatchObject({
       posn: new Victor(-1, 2),
       ccw: -1,
     });
-    expect(end.get("R0")).toMatchObject({
+    expect(end.get("R1")).toMatchObject({
       posn: new Victor(1, 2),
       ccw: -3 / 2,
     });
-    expect(end.get("L1")).toMatchObject({
+    expect(end.get("L2")).toMatchObject({
       posn: new Victor(1, 0),
       ccw: -3 / 2,
     });
-    expect(end.get("R1")).toMatchObject({
+    expect(end.get("R2")).toMatchObject({
       posn: new Victor(-1, 0),
       ccw: -2,
     });
   });
 
   test("throws if no candidates to swing with", () => {
-    const state = initBeckett(1).filter((_, id) => id !== "L0");
+    const state = initBeckett().filter((_, id) => id !== "L1");
     expect(() => swing(state, { beats: 8 })).toThrow(/nobody to swing with/);
   });
 });
 
 describe("robinsChainAcross", () => {
   test("smoke", () => {
-    const state = initBeckett(1);
+    const state = initBeckett();
     const end = robinsChain(state, { beats: 8 }).map((kfs) => kfs.last()?.end);
-    expect(end.get("L0") ?? state.get("L0")).toEqual({
-      ...state.get("L0"),
-      ccw: state.get("L0")!.ccw + 1,
-    });
     expect(end.get("L1") ?? state.get("L1")).toEqual({
       ...state.get("L1"),
       ccw: state.get("L1")!.ccw + 1,
     });
-
-    expect(end.get("R0")).toMatchObject({
-      posn: state.get("R1")!.posn,
-      ccw: state.get("R0")!.ccw + 1 / 2,
+    expect(end.get("L2") ?? state.get("L2")).toEqual({
+      ...state.get("L2"),
+      ccw: state.get("L2")!.ccw + 1,
     });
+
     expect(end.get("R1")).toMatchObject({
-      posn: state.get("R0")!.posn,
+      posn: state.get("R2")!.posn,
       ccw: state.get("R1")!.ccw + 1 / 2,
+    });
+    expect(end.get("R2")).toMatchObject({
+      posn: state.get("R1")!.posn,
+      ccw: state.get("R2")!.ccw + 1 / 2,
     });
   });
 });

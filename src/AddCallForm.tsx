@@ -12,36 +12,35 @@ const callMenu = List<{ text: string; call: Call }>([
     call: { name: "swing", beats: 8 },
   },
   {
-    text: "box the gnat with your neighbor",
-    call: { name: "boxTheGnat", beats: 4, withYour: "neighbor" },
-  },
-  {
     text: "box the gnat with your partner",
-    call: { name: "boxTheGnat", beats: 4, withYour: "partner" },
+    call: { name: "boxTheGnat", beats: 4, whom: "partner" },
   },
   {
-    text: "petronella spin with your partner/neighbor",
+    text: "box the gnat with your neighbor",
+    call: { name: "boxTheGnat", beats: 4, whom: "neighbor" },
+  },
+  {
+    text: "petronella spin",
     call: {
       name: "petronellaSpin",
       beats: 4,
-      withYour: ["partner", "neighbor"],
     },
   },
   {
-    text: "balance the ring with your partner/neighbor",
-    call: { name: "ringBalance", beats: 4, withYour: ["partner", "neighbor"] },
+    text: "balance the ring",
+    call: { name: "ringBalance", beats: 4 },
   },
   {
     text: "robins chain",
     call: { name: "robinsChain", beats: 8 },
   },
   {
-    text: "larks roll away your partner",
-    call: { name: "larksRollAway", beats: 4, your: "partner" },
+    text: "larks roll away partner",
+    call: { name: "larksRollAway", beats: 4, whom: "partner" },
   },
   {
-    text: "larks roll away your neighbor",
-    call: { name: "larksRollAway", beats: 4, your: "neighbor" },
+    text: "larks roll away neighbor",
+    call: { name: "larksRollAway", beats: 4, whom: "neighbor" },
   },
   {
     text: "do si do once",
@@ -52,43 +51,39 @@ const callMenu = List<{ text: string; call: Call }>([
     call: { name: "doSiDo112", beats: 8 },
   },
   {
-    text: "circle left 3 with your partner and neighbor",
+    text: "circle left 3",
     call: {
       name: "circle",
       beats: 8,
       handedness: "left",
       spots: 3,
-      withYour: ["partner", "neighbor"],
     },
   },
   {
-    text: "circle right 3 with your partner and neighbor",
+    text: "circle right 3",
     call: {
       name: "circle",
       beats: 8,
       handedness: "right",
       spots: 3,
-      withYour: ["partner", "neighbor"],
     },
   },
   {
-    text: "circle left 4 with your partner and neighbor",
+    text: "circle left 4",
     call: {
       name: "circle",
       beats: 8,
       handedness: "left",
       spots: 4,
-      withYour: ["partner", "neighbor"],
     },
   },
   {
-    text: "circle right 4 with your partner and neighbor",
+    text: "circle right 4",
     call: {
       name: "circle",
       beats: 8,
       handedness: "right",
       spots: 4,
-      withYour: ["partner", "neighbor"],
     },
   },
   { text: "pass through", call: { name: "passThrough", beats: 2 } },
@@ -96,14 +91,14 @@ const callMenu = List<{ text: string; call: Call }>([
     text: "right left through",
     call: { name: "rightLeftThrough", beats: 8 },
   },
-  { text: "face across", call: { endThatMoveFacing: "across" } },
+  { text: "face across", call: { endThatMoveFacing: "acrossTheSet" } },
   {
     text: "face your partner",
-    call: { endThatMoveFacing: "partnerward" },
+    call: { endThatMoveFacing: "towardsYourPartner" },
   },
   {
     text: "face your neighbor",
-    call: { endThatMoveFacing: "neighborward" },
+    call: { endThatMoveFacing: "towardsYourNeighbor" },
   },
   {
     text: "you are now facing your new neighbor!",

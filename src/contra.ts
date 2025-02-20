@@ -1,10 +1,9 @@
 import { List } from "immutable";
 import Victor from "victor";
 import {
-  DancerId,
   InstructionDir,
   LARK,
-  ByDancer,
+  ByProto,
   DancerState,
   Role,
   DancerKeyframe,
@@ -13,7 +12,7 @@ import {
   Call,
   Figure,
 } from "./types";
-import { ccwTowards } from "./util";
+import { instructionDir2Ccw } from "./util";
 import {
   swing,
   balance,
@@ -44,45 +43,9 @@ export const crossSet = (
   len: number = 1
 ) => (dancer.posn.x < 0 ? new Victor(len, 0) : new Victor(-len, 0));
 
-export function findPersonInDirection(
-  state: ByDancer<DancerState>,
-  offset: (dancer: DancerState) => Victor | null,
-  slop: number = 0.2
-): ByDancer<DancerId | null> {
-  return state.map((dancer) => {
-    const relposn = offset(dancer);
-    if (!relposn) {
-      return null;
-    }
-    const targetPosn = dancer.posn
-      .clone()
-      .add(relposn.rotate(2 * Math.PI * dancer.ccw));
-    const res = state
-      .entrySeq()
-      .filter(([, dancer]) => {
-        return dancer.posn.distance(targetPosn) < slop;
-      })
-      .minBy(([, dancer]) => {
-        return dancer.posn.distance(targetPosn);
-      });
-    return res ? res[0] : null;
-  });
-}
-
-export function ensureSymmetric(counterparts: ByDancer<DancerId>) {
-  for (const [id, counterpart] of counterparts.entries()) {
-    const counterpartCounterpart = counterparts.get(counterpart);
-    if (counterpartCounterpart !== id) {
-      throw new Error(
-        `for dancer ${id}, counterpart is ${counterpart} but that dancer's counterpart is ${counterpartCounterpart}`
-      );
-    }
-  }
-}
-
 export function getCurState(
-  kfs: ByDancer<List<DancerKeyframe>>
-): ByDancer<DancerState> {
+  kfs: ByProto<List<DancerKeyframe>>
+): ByProto<DancerState> {
   return kfs
     .map((kfs) => {
       return kfs.last()?.end;
@@ -133,40 +96,14 @@ export function moves(
 }
 
 export function fudgeFacing(
-  keyframes: ByDancer<List<DancerKeyframe>>,
+  keyframes: ByProto<List<DancerKeyframe>>,
   dir: InstructionDir | ((d: DancerState) => InstructionDir)
-): ByDancer<List<DancerKeyframe>> {
-  return keyframes.map((kfs) => {
+): ByProto<List<DancerKeyframe>> {
+  const protoStates = getCurState(keyframes);
+  return keyframes.map((kfs, protoId) => {
     const unfudged = kfs.last()!;
-    const wantCcw = (() => {
-      const dancerDir = typeof dir === "function" ? dir(unfudged.end) : dir;
-      switch (dancerDir) {
-        case "up":
-          return 1 / 4;
-        case "down":
-          return -1 / 4;
-        case "across":
-          return unfudged.end.posn.x < 0 ? 0 : 1 / 2;
-        case "out":
-          return unfudged.end.posn.x >= 0 ? 0 : 1 / 2;
-        case "progressward":
-          return unfudged.end.progressDirection === "up" ? 1 / 4 : -1 / 4;
-        case "antiprogressward":
-          return unfudged.end.progressDirection === "up" ? -1 / 4 : 1 / 4;
-        case "partnerward": {
-          const partnerPosn = keyframes
-            .get(unfudged.end.labels.partner)!
-            .last()!.end.posn;
-          return ccwTowards(unfudged.end.posn, partnerPosn);
-        }
-        case "neighborward": {
-          const neighborPosn = keyframes
-            .get(unfudged.end.labels.neighbor!)!
-            .last()!.end.posn;
-          return ccwTowards(unfudged.end.posn, neighborPosn);
-        }
-      }
-    })();
+    const dancerDir = typeof dir === "function" ? dir(unfudged.end) : dir;
+    const wantCcw = instructionDir2Ccw(protoStates, protoId, dancerDir);
     return kfs.set(kfs.size - 1, {
       ...unfudged,
       end: {
@@ -179,8 +116,8 @@ export function fudgeFacing(
 
 export function figureToKeyframes(
   figure: Figure,
-  cur: ByDancer<DancerState>
-): ByDancer<List<DancerKeyframe>> {
+  cur: ByProto<DancerState>
+): ByProto<List<DancerKeyframe>> {
   switch (figure.name) {
     case "swing":
       return swing(cur, figure);
@@ -218,8 +155,8 @@ export function figureToKeyframes(
 export function executeDance({
   init,
   calls,
-}: Dance): ByDancer<List<DancerKeyframe>> {
-  let res: ByDancer<List<DancerKeyframe>> = init.map((dancer) =>
+}: Dance): ByProto<List<DancerKeyframe>> {
+  let res: ByProto<List<DancerKeyframe>> = init.map((dancer) =>
     List.of({ beats: 0, end: dancer })
   );
 
@@ -228,17 +165,7 @@ export function executeDance({
     if ("endThatMoveFacing" in call) {
       res = fudgeFacing(res, call.endThatMoveFacing);
     } else if ("youAreNowFacingYourNewNeighbor" in call) {
-      const newNeighbors = findPersonInDirection(cur, () => fwd(2));
-      res = res.map((kfs, id) => {
-        const dancer = cur.get(id)!;
-        return kfs.push({
-          beats: 0,
-          end: {
-            ...dancer,
-            labels: { ...dancer.labels, neighbor: newNeighbors.get(id)! },
-          },
-        });
-      });
+      // TODO: ???
     } else {
       try {
         const newKfss = figureToKeyframes(call, cur);
@@ -276,12 +203,12 @@ function errstr(e: unknown): string {
 }
 
 export class CompositionError extends Error {
-  partial: ByDancer<List<DancerKeyframe>>;
+  partial: ByProto<List<DancerKeyframe>>;
   call: Call;
 
   constructor(
     message: string,
-    partial: ByDancer<List<DancerKeyframe>>,
+    partial: ByProto<List<DancerKeyframe>>,
     call: Call
   ) {
     super(message);

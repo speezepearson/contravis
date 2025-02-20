@@ -29,7 +29,7 @@ export function earlyEveningRollaway(): Dance {
     next neighbors do si do once
    */
   return {
-    init: initImproper(4),
+    init: initImproper(),
     calls: List([
       { beats: 4, name: "balance" } as Call,
       { beats: 12, name: "swing" },
@@ -37,15 +37,14 @@ export function earlyEveningRollaway(): Dance {
       { beats: 4, name: "rightLeftThrough" },
       { beats: 8, name: "robinsChain" },
       { beats: 4, name: "ringBalance" },
-      { beats: 4, name: "larksRollAway", your: "neighbor" },
-      { endThatMoveFacing: "partnerward" },
+      { beats: 4, name: "larksRollAway", whom: "neighbor" },
+      { endThatMoveFacing: "towardsYourPartner" },
       { beats: 8, name: "swing" },
       {
         beats: 8,
         name: "circle",
         handedness: "left",
         spots: 3,
-        withYour: ["partner", "neighbor"] as const,
       },
       { beats: 2, name: "passThrough" },
       { youAreNowFacingYourNewNeighbor: true },
