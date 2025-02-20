@@ -30,8 +30,13 @@ import {
   passThrough,
   doSiDo1,
   doSiDo112,
+  slice,
+  star,
+  allemande,
+  hey,
+  halfHey,
 } from "./figures";
-
+import { fromName } from "./formations";
 export const fwd = (len: number = 1) => new Victor(len, 0);
 export const bak = (len: number = 1) => new Victor(-len, 0);
 export const left = (len: number = 1) => new Victor(0, len);
@@ -149,15 +154,26 @@ export function figureToKeyframes(
       return doSiDo1(cur, figure);
     case "doSiDo112":
       return doSiDo112(cur, figure);
+    case "slice":
+      return slice(cur, figure);
+    case "star":
+      return star(cur, figure);
+    case "allemande":
+      return allemande(cur, figure);
+    case "hey":
+      return hey(cur, figure);
+    case "halfHey":
+      return halfHey(cur, figure);
     case "custom":
       return figure.buildKeyframes(cur);
   }
 }
 
 export function executeDance({
-  init,
+  formation,
   calls,
 }: Dance): ByProto<List<DancerKeyframe>> {
+  const init = fromName(formation);
   let res: ByProto<List<DancerKeyframe>> = init.map((dancer) =>
     List.of({ beats: 0, end: dancer })
   );
@@ -225,7 +241,7 @@ export class CompositionError extends Error {
 
 export function checkInvalidDanceReason(dance: Dance): string | null {
   try {
-    const starts = dance.init;
+    const starts = fromName(dance.formation);
     const kfss = executeDance(dance);
 
     const totalBeats = kfss

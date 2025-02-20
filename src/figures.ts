@@ -7,6 +7,7 @@ import {
   CounterpartRef,
   PD_UP,
   stringifyDancerId,
+  Role,
 } from "./types";
 import {
   ccwTowards,
@@ -19,6 +20,7 @@ import {
   LENGTH_PERIOD,
 } from "./util";
 import { fwd, left, move, moves, partnerward, right } from "./contra";
+import { List } from "immutable";
 
 export const swing: KeyframeFunc<CounterpartRef> = (
   cur,
@@ -366,14 +368,19 @@ export const circle: KeyframeFunc<{
         : neighbor.posn;
     const leftPosn = rightPosn === partner.posn ? neighbor.posn : partner.posn;
     const leftPosns = [dancer.posn, leftPosn, opposite.posn, rightPosn];
+    const center = vavg(leftPosns[0], leftPosns[2]);
 
     return moves(
       dancer,
-      Array.from({ length: spots }, (_, i) => i + 1).map((spotInd) => ({
-        beats: beats / spots,
-        x: leftPosns[mathmod(spotInd * (handedness === "left" ? 1 : -1), 4)],
-        dccw: (handedness === "left" ? -1 : 1) * (spotInd / 4),
-      }))
+      Array.from({ length: spots }, (_, i) => i + 1).map((spotInd) => {
+        const x =
+          leftPosns[mathmod(spotInd * (handedness === "left" ? 1 : -1), 4)];
+        const ccw = alignCcw({
+          near: dancer.ccw + (spotInd / 4) * (handedness === "left" ? -1 : 1),
+          dir: ccwTowards({ from: x, to: center }),
+        });
+        return { beats: beats / spots, x, ccw };
+      })
     );
   });
 
@@ -414,5 +421,103 @@ export const doSiDo112: KeyframeFunc<CounterpartRef> = (
       { beats: beats / 6, x: rc(0.0, +0.0) },
       { beats: beats / 6, x: rc(0.5, +0.2) },
       { beats: beats / 6, x: rc(1, 0) },
+    ]);
+  });
+
+export const slice: KeyframeFunc<{ handedness: "left" | "right" }> = (
+  cur,
+  { beats, handedness }
+) =>
+  cur.map((dancer) =>
+    moves(dancer, [
+      {
+        beats: beats / 2,
+        dx: fwd(0.7).add(handedness === "left" ? left(2) : right(2)),
+      },
+      { beats: beats / 2, dx: handedness === "left" ? left(2) : right(2) },
+    ])
+  );
+
+export const star: KeyframeFunc<{
+  spots: number;
+  handedness: "left" | "right";
+}> = (cur, { beats, spots, handedness }) => {
+  const cir = circle(cur, { beats, spots, handedness });
+  return cir.map((kfs) =>
+    kfs.map((kf) => ({
+      ...kf,
+      end: {
+        ...kf.end,
+        ccw: kf.end.ccw + (1 / 4) * (handedness === "left" ? 1 : -1),
+      },
+    }))
+  );
+};
+
+export const allemande: KeyframeFunc<{
+  turns: number;
+  handedness: "left" | "right";
+  who: { only: Role } | CounterpartRef;
+}> = (cur, { beats, turns, handedness, who }) =>
+  cur.map((dancer, protoId) => {
+    if ("only" in who && who.only !== dancer.role) {
+      return List();
+    }
+    const counterpartRef: CounterpartRef =
+      "only" in who ? { relation: "opposite" } : who;
+    const [, counterpart] = getCounterpart(cur, protoId, counterpartRef);
+    const rc = reCoord(dancer.posn, counterpart.posn);
+    const orbitSign = handedness === "left" ? 1 : -1;
+    const orbitPosns = [
+      rc(0.5, orbitSign * -0.2),
+      rc(1.0, orbitSign * 0.0),
+      rc(0.5, orbitSign * 0.2),
+      rc(0.0, orbitSign * 0.0),
+    ];
+    return moves(dancer, [
+      ...Array.from({ length: 4 * turns - 1 }).map((_, spotIndex) => ({
+        beats: beats / (4 * turns),
+        x: orbitPosns[mathmod(spotIndex, 4)],
+        ccw: alignCcw({
+          near: dancer.ccw + orbitSign * (spotIndex / 4),
+          dir:
+            ccwTowards({ from: dancer.posn, to: counterpart.posn }) +
+            orbitSign * (spotIndex / 4),
+        }),
+      })),
+      {
+        beats: beats / (4 * turns),
+        x: counterpart.posn,
+        ccw: alignCcw({
+          near: dancer.ccw + orbitSign * turns,
+          dir:
+            ccwTowards({ from: dancer.posn, to: counterpart.posn }) +
+            orbitSign * turns,
+        }),
+      },
+    ]);
+  });
+
+export const hey: KeyframeFunc<{ ricochet?: Role }> = (cur, { beats }) =>
+  cur.map((dancer) => moves(dancer, [{ beats }]));
+
+export const halfHey: KeyframeFunc<{ ricochet?: Role }> = (
+  cur,
+  { beats, ricochet }
+) =>
+  cur.map((dancer) => {
+    if (dancer.role === ricochet) {
+      return moves(dancer, [
+        { beats: beats / 2, dx: partnerward(dancer, 2) },
+        { beats: beats / 4, dx: fwd(0.7).add(partnerward(dancer, 1)) },
+        { beats: beats / 4 },
+      ]);
+    }
+    return moves(dancer, [
+      {
+        beats,
+        ccw: dancer.ccw + 1 / 2,
+        dx: fwd(2).add(partnerward(dancer, 2)),
+      },
     ]);
   });

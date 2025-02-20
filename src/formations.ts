@@ -1,4 +1,4 @@
-import { PD_UP } from "./types";
+import { FormationId, PD_UP } from "./types";
 import { LARK } from "./types";
 import { PD_DOWN } from "./types";
 import { ROBIN } from "./types";
@@ -7,6 +7,15 @@ import Victor from "victor";
 import { ByProto } from "./types";
 import { Map } from "immutable";
 import { LENGTH_PERIOD } from "./util";
+
+export function fromName(name: FormationId): ByProto<DancerState> {
+  switch (name) {
+    case "becket":
+      return initBecket();
+    case "improper":
+      return initImproper();
+  }
+}
 
 export function initImproper(): ByProto<DancerState> {
   return Map([
@@ -49,7 +58,7 @@ export function initImproper(): ByProto<DancerState> {
   ]);
 }
 
-export function initBeckett(): ByProto<DancerState> {
+export function initBecket(): ByProto<DancerState> {
   return Map([
     [
       "L1",

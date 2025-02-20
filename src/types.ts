@@ -68,14 +68,20 @@ export type Figure = { beats: number } & (
   | ({ name: "boxTheGnat" } & CounterpartRef)
   | { name: "rightLeftThrough" }
   | ({ name: "larksRollAway" } & CounterpartRef)
-  | {
-      name: "circle";
-      handedness: "left" | "right";
-      spots: number;
-    }
+  | { name: "circle"; handedness: "left" | "right"; spots: number }
   | { name: "passThrough" }
   | ({ name: "doSiDo1" } & CounterpartRef)
   | ({ name: "doSiDo112" } & CounterpartRef)
+  | { name: "slice"; handedness: "left" | "right" }
+  | { name: "star"; spots: number; handedness: "left" | "right" }
+  | { name: "hey"; ricochet?: Role }
+  | { name: "halfHey"; ricochet?: Role }
+  | {
+      name: "allemande";
+      turns: number;
+      handedness: "left" | "right";
+      who: { only: Role } | CounterpartRef;
+    }
   | {
       name: "custom";
       buildKeyframes: (
@@ -94,8 +100,9 @@ export type Call =
     }
   | { youAreNowFacingYourNewNeighbor: true };
 
+export type FormationId = "becket" | "improper";
 export interface Dance {
-  readonly init: ByProto<DancerState>;
+  readonly formation: FormationId;
   readonly calls: List<Call>;
 }
 

@@ -18,10 +18,11 @@ import {
   PD_UP,
 } from "./types";
 import { LARK, DancerIdStr } from "./types";
-import { earlyEveningRollaway } from "./dances";
+import { dearfield } from "./dances";
 import { Lark, Robin } from "./Dancers";
 import { CallList } from "./CallList";
 import { h4Offset, LENGTH_PERIOD } from "./util";
+import { fromName } from "./formations";
 
 const pxPerPace = 50;
 
@@ -58,7 +59,7 @@ function ContraDance() {
     Map<DancerIdStr, SVGSVGElement | null>
   >(Map());
 
-  const [dance, setDance] = useState<Dance>(earlyEveningRollaway());
+  const [dance, setDance] = useState<Dance>(dearfield());
   const invalidDanceReason = useMemo(
     () => checkInvalidDanceReason(dance),
     [dance]
@@ -272,6 +273,19 @@ function ContraDance() {
       )} */}
       <div style={{ display: "flex", flexDirection: "row" }}>
         <div style={{ flex: 1 }}>
+          <div>
+            <button
+              onClick={() =>
+                setDance((dance) => ({
+                  ...dance,
+                  formation:
+                    dance.formation === "becket" ? "improper" : "becket",
+                }))
+              }
+            >
+              {dance.formation}
+            </button>
+          </div>
           <CallList
             calls={dance.calls}
             setCalls={(calls) => setDance((dance) => ({ ...dance, calls }))}
@@ -289,38 +303,40 @@ function ContraDance() {
               border: "1px solid black",
             }}
           >
-            {dance.init.entrySeq().flatMap(([protoId, dancer]) =>
-              showH4Ids.map((h4Id) => {
-                const goingUp = dancer.progressDirection === PD_UP;
-                return (
-                  <div
-                    key={`${protoId} ${h4Id}`}
-                    style={{ position: "absolute", top: 0, left: 0 }}
-                    // onClick={() => setFocusedDancerId(id)}
-                  >
-                    {dancer.role === LARK ? (
-                      <Lark
-                        ref={setDancerRef.get(
-                          stringifyDancerId({ protoId, h4Id })
-                        )}
-                        label={stringifyDancerId({ protoId, h4Id })}
-                        fill={goingUp ? "#00000044" : "none"}
-                        scale={pxPerPace}
-                      />
-                    ) : (
-                      <Robin
-                        ref={setDancerRef.get(
-                          stringifyDancerId({ protoId, h4Id })
-                        )}
-                        label={stringifyDancerId({ protoId, h4Id })}
-                        fill={goingUp ? "#00000044" : "none"}
-                        scale={pxPerPace}
-                      />
-                    )}
-                  </div>
-                );
-              })
-            )}
+            {fromName(dance.formation)
+              .entrySeq()
+              .flatMap(([protoId, dancer]) =>
+                showH4Ids.map((h4Id) => {
+                  const goingUp = dancer.progressDirection === PD_UP;
+                  return (
+                    <div
+                      key={`${protoId} ${h4Id}`}
+                      style={{ position: "absolute", top: 0, left: 0 }}
+                      // onClick={() => setFocusedDancerId(id)}
+                    >
+                      {dancer.role === LARK ? (
+                        <Lark
+                          ref={setDancerRef.get(
+                            stringifyDancerId({ protoId, h4Id })
+                          )}
+                          label={stringifyDancerId({ protoId, h4Id })}
+                          fill={goingUp ? "#00000044" : "none"}
+                          scale={pxPerPace}
+                        />
+                      ) : (
+                        <Robin
+                          ref={setDancerRef.get(
+                            stringifyDancerId({ protoId, h4Id })
+                          )}
+                          label={stringifyDancerId({ protoId, h4Id })}
+                          fill={goingUp ? "#00000044" : "none"}
+                          scale={pxPerPace}
+                        />
+                      )}
+                    </div>
+                  );
+                })
+              )}
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { List } from "immutable";
 import { useMemo } from "react";
 import { AddCallForm } from "./AddCallForm";
-import { Call, CounterpartRef } from "./types";
+import { Call, CounterpartRef, LARK, ROBIN } from "./types";
 import { CompositionError } from "./contra";
 
 type CallListProps = {
@@ -353,8 +353,91 @@ function CallElem({
           />
         </>
       );
+    case "slice":
+      return (
+        <>
+          slice{" "}
+          <SimpleDropdown
+            value={call.handedness}
+            options={["left", "right"]}
+            onChange={(v) => setCall({ ...call, handedness: v })}
+          />
+        </>
+      );
+    case "star":
+      return (
+        <>
+          star{" "}
+          <SimpleDropdown
+            value={call.handedness}
+            options={["left", "right"]}
+            onChange={(v) => setCall({ ...call, handedness: v })}
+          />
+          <input
+            type="number"
+            min="1"
+            max="8"
+            step="1"
+            value={call.spots}
+            onChange={(e) =>
+              setCall({ ...call, spots: parseInt(e.target.value) })
+            }
+          />
+          places
+        </>
+      );
+    case "allemande":
+      return (
+        <>
+          <SimpleDropdown
+            value={"only" in call.who ? call.who.only : LARK}
+            options={[LARK, ROBIN]}
+            onChange={(v) => setCall({ ...call, who: { only: v } })}
+          />{" "}
+          allemande{" "}
+          <SimpleDropdown
+            value={call.handedness}
+            options={["left", "right"]}
+            onChange={(v) => setCall({ ...call, handedness: v })}
+          />
+          <input
+            type="number"
+            min="0.25"
+            max="1.5"
+            step="0.25"
+            value={call.turns}
+            onChange={(e) =>
+              setCall({ ...call, turns: parseFloat(e.target.value) })
+            }
+          />
+          turns
+        </>
+      );
+    case "hey":
+      return (
+        <>
+          hey (
+          <SimpleDropdown
+            value={call.ricochet ?? ""}
+            options={[LARK, ROBIN, ""]}
+            onChange={(v) => setCall({ ...call, ricochet: v || undefined })}
+          />{" "}
+          ricochet)
+        </>
+      );
+    case "halfHey":
+      return (
+        <>
+          half hey (
+          <SimpleDropdown
+            value={call.ricochet ?? ""}
+            options={[LARK, ROBIN, ""]}
+            onChange={(v) => setCall({ ...call, ricochet: v || undefined })}
+          />{" "}
+          ricochet)
+        </>
+      );
     case "custom":
       return "<custom>";
   }
-  call satisfies never;
 }

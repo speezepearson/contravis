@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Call } from "./types";
+import { Call, LARK } from "./types";
 import { List } from "immutable";
 
 const callMenu = List<{ text: string; call: Call }>([
@@ -111,7 +111,36 @@ const callMenu = List<{ text: string; call: Call }>([
     text: "right left through",
     call: { name: "rightLeftThrough", beats: 8 },
   },
-  { text: "face across", call: { endThatMoveFacing: "acrossTheSet" } },
+  {
+    text: "slice left",
+    call: { name: "slice", handedness: "left", beats: 4 },
+  },
+  {
+    text: "slice right",
+    call: { name: "slice", handedness: "right", beats: 4 },
+  },
+  {
+    text: "star left",
+    call: { name: "star", handedness: "left", spots: 4, beats: 8 },
+  },
+  {
+    text: "star right",
+    call: { name: "star", handedness: "right", spots: 4, beats: 8 },
+  },
+  {
+    text: "allemande",
+    call: {
+      name: "allemande",
+      turns: 1 / 2,
+      handedness: "left",
+      who: { only: LARK },
+      beats: 2,
+    },
+  },
+  {
+    text: "face across",
+    call: { endThatMoveFacing: "acrossTheSet" },
+  },
   {
     text: "face your partner",
     call: { endThatMoveFacing: "towardsYourPartner" },
