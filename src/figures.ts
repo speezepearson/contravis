@@ -1,15 +1,5 @@
-import { List } from "immutable";
 import Victor from "victor";
-import {
-  InstructionDir,
-  LARK,
-  ByDancer,
-  DancerState,
-  ROBIN,
-  DancerKeyframe,
-  alignCcw,
-  KeyframeFunc,
-} from "./types";
+import { LARK, DancerState, ROBIN, alignCcw, KeyframeFunc } from "./types";
 import {
   ccwTowards,
   getTopoSquare,
@@ -377,48 +367,3 @@ export const doSiDo112: KeyframeFunc<void> = (cur, { beats }) =>
       { beats: beats / 6, dx: fwd(2) },
     ])
   );
-
-export function fudgeFacing(
-  keyframes: ByDancer<List<DancerKeyframe>>,
-  dir: InstructionDir | ((d: DancerState) => InstructionDir)
-): ByDancer<List<DancerKeyframe>> {
-  return keyframes.map((kfs) => {
-    const unfudged = kfs.last()!;
-    const wantCcw = (() => {
-      const dancerDir = typeof dir === "function" ? dir(unfudged.end) : dir;
-      switch (dancerDir) {
-        case "up":
-          return 1 / 4;
-        case "down":
-          return -1 / 4;
-        case "across":
-          return unfudged.end.posn.x < 0 ? 0 : 1 / 2;
-        case "out":
-          return unfudged.end.posn.x >= 0 ? 0 : 1 / 2;
-        case "progressward":
-          return unfudged.end.progressDirection === "up" ? 1 / 4 : -1 / 4;
-        case "antiprogressward":
-          return unfudged.end.progressDirection === "up" ? -1 / 4 : 1 / 4;
-        case "partnerward": {
-          const partnerPosn = keyframes
-            .get(unfudged.end.labels.partner)!
-            .last()!.end.posn;
-          return ccwTowards(unfudged.end.posn, partnerPosn);
-        }
-        case "neighborward": {
-          const neighborPosn = keyframes
-            .get(unfudged.end.labels.neighbor!)!
-            .last()!.end.posn;
-          return ccwTowards(unfudged.end.posn, neighborPosn);
-        }
-      }
-    })();
-    return kfs.set(kfs.size - 1, {
-      ...unfudged,
-      end: {
-        ...unfudged.end,
-        ccw: alignCcw({ dir: wantCcw, near: unfudged.end.ccw }),
-      },
-    });
-  });
-}
