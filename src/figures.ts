@@ -7,17 +7,29 @@ import {
   sameSideOfSet,
   vavg,
   getOther,
+  isFacing,
 } from "./util";
 import { fwd, left, move, moves, partnerward, right } from "./contra";
 
 export const swing: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
-  cur.map((dancer, id) => {
-    const [, counterpart] = getOther(cur, id, other);
+  cur.map((dancer, protoId) => {
+    const [, counterpart] = getOther(cur, protoId, other);
     if (!sameSideOfSet(dancer.posn, counterpart.posn)) {
-      throw new Error(`${id} is trying to swing with somebody across the set`);
+      throw new Error(
+        `${protoId} is trying to swing with somebody across the set`
+      );
+    }
+    if (!isFacing(dancer, counterpart.posn, { maxTurns: 0.501 })) {
+      throw new Error(
+        `${protoId} is trying to swing with somebody not facing them`
+      );
     }
 
     const rc = reCoord(dancer.posn, counterpart.posn);
+    const facingCounterpart = alignCcw({
+      near: dancer.ccw,
+      dir: ccwTowards({ from: dancer.posn, to: counterpart.posn }),
+    });
     const extraCcw = -(dancer.role === ROBIN ? 1 / 2 : 0);
     const swapPosns =
       (dancer.posn.x < 0 !== (dancer.role === LARK)) !==
@@ -27,32 +39,32 @@ export const swing: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
         {
           beats: beats / 6,
           x: rc(0.5, 0.2),
-          dccw: -1 / 4,
+          ccw: facingCounterpart - 1 / 4,
         },
         {
           beats: beats / 6,
           x: rc(0.7, 0.0),
-          dccw: -1 / 2,
+          ccw: facingCounterpart - 1 / 2,
         },
         {
           beats: beats / 6,
           x: rc(0.5, -0.2),
-          dccw: -3 / 4,
+          ccw: facingCounterpart - 3 / 4,
         },
         {
           beats: beats / 6,
           x: rc(0.3, 0.0),
-          dccw: -4 / 4,
+          ccw: facingCounterpart - 4 / 4,
         },
         {
           beats: beats / 6,
           x: rc(0.5, 0.2),
-          dccw: -5 / 4,
+          ccw: facingCounterpart - 5 / 4,
         },
         {
           beats: beats / 6,
           x: new Victor(dancer.posn.x < 0 ? -1 : 1, counterpart.posn.y),
-          dccw: -5 / 4 + extraCcw,
+          ccw: facingCounterpart - 5 / 4 + extraCcw,
         },
       ]);
     } else {
@@ -60,19 +72,19 @@ export const swing: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
         {
           beats: beats / 4,
           x: rc(0.5, 0.2),
-          dccw: -1 / 4,
+          ccw: facingCounterpart - 1 / 4,
         },
         {
           beats: beats / 4,
           x: rc(0.7, 0.0),
-          dccw: -2 / 4,
+          ccw: facingCounterpart - 2 / 4,
         },
         {
           beats: beats / 4,
           x: rc(0.5, -0.2),
-          dccw: -3 / 4,
+          ccw: facingCounterpart - 3 / 4,
         },
-        { beats: beats / 4, dccw: -3 / 4 + extraCcw },
+        { beats: beats / 4, dccw: facingCounterpart - 3 / 4 + extraCcw },
       ]);
     }
   });
@@ -207,25 +219,42 @@ export const petronellaSpin: KeyframeFunc<void> = (cur, { beats }) =>
 
 export const balance: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
   cur.map((dancer, protoId) => {
-    const [, counterpart] = getOther(cur, protoId, other);
+    const [counterpartId, counterpart] = getOther(cur, protoId, other);
+    if (!isFacing(dancer, counterpart.posn, { maxTurns: 0.51 })) {
+      throw new Error(
+        `${protoId} is trying to balance somebody (${counterpartId}) they're not facing`
+      );
+    }
+
     const rc = reCoord(dancer.posn, counterpart.posn);
+    const facingCounterpart = alignCcw({
+      near: dancer.ccw,
+      dir: ccwTowards({ from: dancer.posn, to: counterpart.posn }),
+    });
     return moves(dancer, [
       {
         beats: beats / 4,
         x: rc(0.3, 0),
+        ccw: facingCounterpart,
       },
       {
         beats: beats / 4,
         x: rc(0.3, 0),
+        ccw: facingCounterpart,
       },
-      { beats: beats / 4 },
-      { beats: beats / 4 },
+      { beats: beats / 4, ccw: facingCounterpart },
+      { beats: beats / 4, ccw: facingCounterpart },
     ]);
   });
 
 export const boxTheGnat: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
   cur.map((dancer, protoId) => {
     const [, counterpart] = getOther(cur, protoId, other);
+    if (!isFacing(dancer, counterpart.posn, { maxTurns: 0.51 })) {
+      throw new Error(
+        `${protoId} is trying to box the gnat with somebody not facing them`
+      );
+    }
     const finalCcw =
       ccwTowards({ from: dancer.posn, to: counterpart.posn }) +
       (dancer.role === LARK ? -1 / 4 : 1 / 4);

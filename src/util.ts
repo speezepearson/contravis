@@ -42,13 +42,16 @@ export function sameSideOfSet(p1: Victor, p2: Victor): boolean {
   return p1.x * p2.x > 0;
 }
 
-export function isFacing({ posn, ccw }: DancerState, dst: Victor): boolean {
-  return (
-    dst
-      .clone()
-      .subtract(posn)
-      .dot(new Victor(1, 0).rotate(ccw * 2 * Math.PI)) > 0
-  );
+export function isFacing(
+  { posn, ccw }: DancerState,
+  dst: Victor,
+  { maxTurns = 1 / 2 }: { maxTurns?: number }
+): boolean {
+  const facingDir = new Victor(1, 0).rotate(ccw * 2 * Math.PI);
+  const dstDir = dst.clone().subtract(posn).normalize();
+  const dot = facingDir.dot(dstDir);
+  const threshold = Math.cos(maxTurns * 2 * Math.PI);
+  return dot > threshold;
 }
 
 export function h4Offset(dancer: DancerState, h4Id: number): DancerState {
@@ -60,14 +63,22 @@ export function h4Offset(dancer: DancerState, h4Id: number): DancerState {
 
 export function getOther(
   protoStates: ByProto<DancerState>,
-  protoId: ProtoId,
+  id: ProtoId | DancerId,
   { relation, h4Offset }: Other,
-  maxDist: number = LENGTH_PERIOD * 0.99
+  {
+    maxDist = LENGTH_PERIOD * 0.99,
+    checkSymmetry = true,
+  }: { maxDist?: number; checkSymmetry?: boolean } = {}
 ): [DancerId, DancerState] {
+  if (typeof id === "string") {
+    id = { h4Id: 0, protoId: id };
+  }
+  const { protoId, h4Id } = id;
   const otherId = {
     h4Id:
+      h4Id +
       (h4Offset ?? 0) *
-      (protoStates.get(protoId)!.progressDirection === PD_UP ? 1 : -1), // What about shadows? Maybe this sign should be (neighbor ? (up ? 1 : -1) : partner ? (lark ? 1 : -1)).
+        (protoStates.get(protoId)!.progressDirection === PD_UP ? 1 : -1), // What about shadows? Maybe this sign should be (neighbor ? (up ? 1 : -1) : partner ? (lark ? 1 : -1)).
     protoId: (() => {
       switch (relation) {
         case "partner":
@@ -81,7 +92,28 @@ export function getOther(
   };
   const otherState = getDancer(protoStates, otherId);
   if (otherState.posn.distance(protoStates.get(protoId)!.posn) > maxDist) {
-    throw new Error(`${protoId} is too far from ${JSON.stringify(otherId)}`);
+    throw new Error(
+      `${protoId} is too far from ${JSON.stringify(
+        otherId
+      )} to meaningfully interact`
+    );
+  }
+
+  if (checkSymmetry) {
+    // Sanity check: this relationship should always be symmetric.
+    const [nextId] = getOther(
+      protoStates,
+      otherId,
+      { relation, h4Offset },
+      { checkSymmetry: false }
+    );
+    if (!(nextId.protoId === protoId && nextId.h4Id === h4Id)) {
+      throw new Error(
+        `unexpectedly asymmetric interaction: ${JSON.stringify(
+          id
+        )} -> ${JSON.stringify(otherId)} -> ${JSON.stringify(nextId)}`
+      );
+    }
   }
   return [otherId, otherState];
 }
