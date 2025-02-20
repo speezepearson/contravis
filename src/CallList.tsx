@@ -56,9 +56,30 @@ export function CallList({
             }}
           >
             <td>{timestamps.get(i)}</td>
-            <td>{"beats" in call ? call.beats : ""}</td>
             <td>
-              <CallElem call={call} />
+              {"beats" in call ? (
+                <input
+                  type="number"
+                  style={{ width: "3em" }}
+                  value={call.beats}
+                  onChange={(e) =>
+                    setCalls(
+                      calls.set(i, {
+                        ...call,
+                        beats: parseInt(e.target.value),
+                      })
+                    )
+                  }
+                />
+              ) : (
+                ""
+              )}
+            </td>
+            <td>
+              <CallElem
+                call={call}
+                setCall={(call) => setCalls(calls.set(i, call))}
+              />
               {call === compositionError?.call &&
                 ` -- ${compositionError.message}`}
             </td>
@@ -95,17 +116,79 @@ export function CallList({
   );
 }
 
-function CallElem({ call }: { call: Call }) {
-  if ("endThatMoveFacing" in call)
-    return `(end that move facing ${call.endThatMoveFacing})`;
+function SimpleDropdown<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (value: T) => void;
+  options: T[];
+}) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value as T)}>
+      {options.map((option) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function CallElem({
+  call,
+  setCall,
+}: {
+  call: Call;
+  setCall: (call: Call) => void;
+}) {
+  if ("endThatMoveFacing" in call) {
+    return (
+      <>
+        end that move facing
+        <SimpleDropdown
+          value={call.endThatMoveFacing}
+          options={[
+            "acrossTheSet",
+            "out",
+            "upTheSet",
+            "downTheSet",
+            "towardsYourPartner",
+            "towardsYourNeighbor",
+            "awayFromYourNeighbor",
+          ]}
+          onChange={(v) => setCall({ endThatMoveFacing: v })}
+        />
+      </>
+    );
+  }
   if ("youAreNowFacingYourNewNeighbor" in call)
     return `You are now facing your new neighbor!`;
 
   switch (call.name) {
     case "swing":
-      return "swing";
+      return (
+        <>
+          swing your{" "}
+          <SimpleDropdown
+            value={call.relation}
+            options={["partner", "neighbor"]}
+            onChange={(v) => setCall({ ...call, relation: v })}
+          />
+        </>
+      );
     case "robinsChain":
-      return "robins chain";
+      return (
+        <>
+          robins chain to your{" "}
+          <SimpleDropdown
+            value={call.relation}
+            options={["partner", "neighbor"]}
+            onChange={(v) => setCall({ ...call, relation: v })}
+          />
+        </>
+      );
     case "formWave":
       return "form wave";
     case "waveBalanceBellySlide":
@@ -115,21 +198,86 @@ function CallElem({ call }: { call: Call }) {
     case "petronellaSpin":
       return "petronella spin";
     case "balance":
-      return "balance";
+      return (
+        <>
+          balance with your{" "}
+          <SimpleDropdown
+            value={call.relation}
+            options={["partner", "neighbor"]}
+            onChange={(v) => setCall({ ...call, relation: v })}
+          />
+        </>
+      );
     case "boxTheGnat":
-      return "box the gnat";
+      return (
+        <>
+          box the gnat with your{" "}
+          <SimpleDropdown
+            value={call.relation}
+            options={["partner", "neighbor"]}
+            onChange={(v) => setCall({ ...call, relation: v })}
+          />
+        </>
+      );
     case "rightLeftThrough":
       return "right left through";
     case "larksRollAway":
-      return `larks roll away your ${call.relation}`;
+      return (
+        <>
+          larks roll away your{" "}
+          <SimpleDropdown
+            value={call.relation}
+            options={["partner", "neighbor"]}
+            onChange={(v) => setCall({ ...call, relation: v })}
+          />
+        </>
+      );
     case "circle":
-      return "circle";
+      return (
+        <>
+          circle
+          <SimpleDropdown
+            value={call.handedness}
+            options={["left", "right"]}
+            onChange={(v) => setCall({ ...call, handedness: v })}
+          />
+          <input
+            type="number"
+            min="1"
+            max="8"
+            step="1"
+            value={call.spots}
+            onChange={(e) =>
+              setCall({ ...call, spots: parseInt(e.target.value) })
+            }
+          />{" "}
+          places
+        </>
+      );
     case "passThrough":
       return "pass through";
     case "doSiDo1":
-      return "do si do";
+      return (
+        <>
+          do si do with your{" "}
+          <SimpleDropdown
+            value={call.relation}
+            options={["partner", "neighbor"]}
+            onChange={(v) => setCall({ ...call, relation: v })}
+          />
+        </>
+      );
     case "doSiDo112":
-      return "do si do 1 1/2";
+      return (
+        <>
+          do si do 1 1/2 with your{" "}
+          <SimpleDropdown
+            value={call.relation}
+            options={["partner", "neighbor"]}
+            onChange={(v) => setCall({ ...call, relation: v })}
+          />
+        </>
+      );
     case "custom":
       return "<custom>";
   }

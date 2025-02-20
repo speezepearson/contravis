@@ -35,6 +35,10 @@ function ContraDance() {
     (beats: number) => (beats / beatsPerSec) * 1000,
     [beatsPerSec]
   );
+  const msToBeats = useCallback(
+    (ms: number) => (ms / 1000) * beatsPerSec,
+    [beatsPerSec]
+  );
 
   const [minH4Id, setMinH4Id] = useState(0);
   const [maxH4Id, setMaxH4Id] = useState(0);
@@ -94,7 +98,9 @@ function ContraDance() {
         }, 0) ?? 0,
     [keyframes]
   );
-  const nAnimatedBeats = 2 * nBeatsChoreographed;
+  const nAnimatedBeats = compositionError
+    ? nBeatsChoreographed
+    : 2 * nBeatsChoreographed;
 
   const anim = useRef(anime.timeline({ autoplay: false }));
   useEffect(() => {
@@ -103,12 +109,12 @@ function ContraDance() {
     prev.pause();
 
     anim.current = anime.timeline({
-      duration: beatsToMs(nBeatsChoreographed),
+      duration: beatsToMs(nAnimatedBeats),
       easing: "linear",
       autoplay: false,
       loop: true,
       update: (anim) => {
-        setBeat((anim.progress / 100) * nAnimatedBeats);
+        setBeat(msToBeats(anim.currentTime));
       },
     });
 
@@ -155,6 +161,8 @@ function ContraDance() {
     nAnimatedBeats,
     beatsToMs,
     showH4Ids,
+    beatsPerSec,
+    msToBeats,
   ]);
 
   const [beat, setBeat] = useState(0);
@@ -225,7 +233,7 @@ function ContraDance() {
         <input
           type="range"
           min="0"
-          max={2 * nBeatsChoreographed}
+          max={nAnimatedBeats}
           step="0.1"
           value={beat}
           onChange={(e) => setBeat(parseFloat(e.target.value))}

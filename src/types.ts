@@ -89,7 +89,12 @@ export type Figure = { beats: number } & (
 
 export type Call =
   | Figure
-  | { endThatMoveFacing: InstructionDir }
+  | {
+      endThatMoveFacing: Exclude<
+        InstructionDir,
+        "inFrontOfYou" | "toYourLeft" | "toYourRight"
+      >;
+    }
   | { youAreNowFacingYourNewNeighbor: true };
 
 export interface Dance {

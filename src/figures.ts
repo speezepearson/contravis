@@ -223,12 +223,9 @@ export const balance: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
     ]);
   });
 
-export const boxTheGnat: KeyframeFunc<{ whom: "partner" | "neighbor" }> = (
-  cur,
-  { beats, whom }
-) =>
+export const boxTheGnat: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
   cur.map((dancer, protoId) => {
-    const [, counterpart] = getOther(cur, protoId, { relation: whom });
+    const [, counterpart] = getOther(cur, protoId, other);
     const finalCcw =
       ccwTowards({ from: dancer.posn, to: counterpart.posn }) +
       (dancer.role === LARK ? -1 / 4 : 1 / 4);

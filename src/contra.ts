@@ -172,7 +172,9 @@ export function executeDance({
         const newKfss = figureToKeyframes(call, cur);
         res = res.map((oldKfs, id) => {
           const newKfs = newKfss.get(id, List<DancerKeyframe>());
-          const newKfsBeats = newKfs.reduce((t, kf) => t + kf.beats, 0);
+          const newKfsBeats = Math.round(
+            newKfs.reduce((t, kf) => t + kf.beats, 0)
+          );
           if (newKfsBeats > call.beats) {
             throw new Error(
               `dancer ${id} has ${newKfsBeats} beats of keyframes to accomplish but figure has only ${call.beats} beats`
@@ -187,6 +189,7 @@ export function executeDance({
           });
         });
       } catch (e) {
+        console.error(e);
         throw new CompositionError(errstr(e), res, call);
       }
     }
