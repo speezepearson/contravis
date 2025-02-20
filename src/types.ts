@@ -97,8 +97,7 @@ export interface Dance {
 
 export type KeyframeFunc<Args> = (
   cur: ByProto<DancerState>,
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  args: { beats: number } & (Args extends void ? {} : Args)
+  args: { beats: number } & (Args extends void ? object : Args)
 ) => ByProto<List<DancerKeyframe>>;
 export type KeyframeFuncArgs<KF extends KeyframeFunc<never>> =
   Parameters<KF>[1];
