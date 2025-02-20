@@ -31,15 +31,15 @@ export function earlyEveningRollaway(): Dance {
   return {
     init: initImproper(),
     calls: List([
-      { beats: 4, name: "balance" } as Call,
-      { beats: 12, name: "swing" },
-      { beats: 4, name: "balance" },
+      { beats: 4, name: "balance", relation: "neighbor" } as Call,
+      { beats: 12, name: "swing", relation: "neighbor" },
+      { beats: 4, name: "balance", relation: "partner" },
       { beats: 4, name: "rightLeftThrough" },
-      { beats: 8, name: "robinsChain" },
+      { beats: 8, name: "robinsChain", relation: "partner" },
       { beats: 4, name: "ringBalance" },
-      { beats: 4, name: "larksRollAway", whom: "neighbor" },
+      { beats: 4, name: "larksRollAway", relation: "neighbor" },
       { endThatMoveFacing: "towardsYourPartner" },
-      { beats: 8, name: "swing" },
+      { beats: 8, name: "swing", relation: "partner" },
       {
         beats: 8,
         name: "circle",
@@ -48,7 +48,7 @@ export function earlyEveningRollaway(): Dance {
       },
       { beats: 2, name: "passThrough" },
       { youAreNowFacingYourNewNeighbor: true },
-      { beats: 6, name: "doSiDo1" },
+      { beats: 6, name: "doSiDo1", relation: "neighbor", h4Offset: 1 },
     ]),
   };
 }

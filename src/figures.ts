@@ -1,43 +1,23 @@
 import Victor from "victor";
-import { LARK, ROBIN, alignCcw, KeyframeFunc } from "./types";
+import { LARK, ROBIN, alignCcw, KeyframeFunc, Other } from "./types";
 import {
   ccwTowards,
   reCoord,
-  getDancer,
-  getNearbyDancers,
-  instructionDir2Vec,
-  // getTopoSquare,
-  isFacing,
   mathmod,
-  neighborId,
-  neighborProtoId,
-  partnerId,
-  partnerProtoId,
   sameSideOfSet,
   vavg,
+  getOther,
 } from "./util";
-import { crossSet, fwd, left, move, moves, partnerward, right } from "./contra";
+import { fwd, left, move, moves, partnerward, right } from "./contra";
 
-export const swing: KeyframeFunc<void> = (cur, { beats }) =>
+export const swing: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
   cur.map((dancer, id) => {
-    const maybeCounterpart = getNearbyDancers(cur, dancer.posn, 3)
-      .filter(
-        (cp) =>
-          cp.role !== dancer.role &&
-          sameSideOfSet(cp.posn, dancer.posn) &&
-          cp.posn.distance(dancer.posn) < 4 &&
-          isFacing(dancer, cp.posn) &&
-          isFacing(cp, dancer.posn)
-      )
-      .entrySeq()
-      .minBy(([, { posn }]) => posn.distance(dancer.posn));
-    if (!maybeCounterpart) {
-      throw new Error(`${id} has nobody to swing with`);
+    const [, counterpart] = getOther(cur, id, other);
+    if (!sameSideOfSet(dancer.posn, counterpart.posn)) {
+      throw new Error(`${id} is trying to swing with somebody across the set`);
     }
-    const [, counterpart] = maybeCounterpart;
 
-    const ep = (x: number, y: number) =>
-      reCoord(dancer.posn, counterpart.posn, { x, y });
+    const rc = reCoord(dancer.posn, counterpart.posn);
     const extraCcw = -(dancer.role === ROBIN ? 1 / 2 : 0);
     const swapPosns =
       (dancer.posn.x < 0 !== (dancer.role === LARK)) !==
@@ -46,27 +26,27 @@ export const swing: KeyframeFunc<void> = (cur, { beats }) =>
       return moves(dancer, [
         {
           beats: beats / 6,
-          x: ep(0.5, 0.2),
+          x: rc(0.5, 0.2),
           dccw: -1 / 4,
         },
         {
           beats: beats / 6,
-          x: ep(0.7, 0.0),
+          x: rc(0.7, 0.0),
           dccw: -1 / 2,
         },
         {
           beats: beats / 6,
-          x: ep(0.5, -0.2),
+          x: rc(0.5, -0.2),
           dccw: -3 / 4,
         },
         {
           beats: beats / 6,
-          x: ep(0.3, 0.0),
+          x: rc(0.3, 0.0),
           dccw: -4 / 4,
         },
         {
           beats: beats / 6,
-          x: ep(0.5, 0.2),
+          x: rc(0.5, 0.2),
           dccw: -5 / 4,
         },
         {
@@ -79,17 +59,17 @@ export const swing: KeyframeFunc<void> = (cur, { beats }) =>
       return moves(dancer, [
         {
           beats: beats / 4,
-          x: ep(0.5, 0.2),
+          x: rc(0.5, 0.2),
           dccw: -1 / 4,
         },
         {
           beats: beats / 4,
-          x: ep(0.7, 0.0),
+          x: rc(0.7, 0.0),
           dccw: -2 / 4,
         },
         {
           beats: beats / 4,
-          x: ep(0.5, -0.2),
+          x: rc(0.5, -0.2),
           dccw: -3 / 4,
         },
         { beats: beats / 4, dccw: -3 / 4 + extraCcw },
@@ -97,8 +77,8 @@ export const swing: KeyframeFunc<void> = (cur, { beats }) =>
     }
   });
 
-export const robinsChain: KeyframeFunc<void> = (cur, { beats }) =>
-  cur.map((dancer, id) => {
+export const robinsChain: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
+  cur.map((dancer, protoId) => {
     if (dancer.role === LARK) {
       return moves(dancer, [
         { beats: beats / 2, dx: right(1.5), dccw: 1 / 2 },
@@ -106,25 +86,12 @@ export const robinsChain: KeyframeFunc<void> = (cur, { beats }) =>
         { beats: beats / 4, dccw: 1 },
       ]);
     } else {
-      const expectedTurnerPosn = dancer.posn.clone().add(crossSet(dancer, 2));
-      const possibleTurners = cur
-        .entrySeq()
-        .filter(
-          ([, { role, posn }]) =>
-            role === LARK &&
-            !sameSideOfSet(posn, dancer.posn) &&
-            posn.distance(expectedTurnerPosn) < 0.5
-        )
-        .toList();
-      if (possibleTurners.isEmpty()) {
-        throw new Error(`${id} has nobody to chain to`);
-      }
-      if (possibleTurners.size > 1) {
+      const [, turner] = getOther(cur, protoId, other);
+      if (sameSideOfSet(dancer.posn, turner.posn)) {
         throw new Error(
-          `${id} is unsure who to chain to: options ${possibleTurners}`
+          `${protoId} is trying to chain to somebody on the same side of the set`
         );
       }
-      const [, turner] = possibleTurners.first()!;
 
       return moves(dancer, [
         { beats: beats / 4, dx: fwd(1).add(left(1.3)), dccw: 1 / 4 },
@@ -186,22 +153,21 @@ export const waveBalanceBellySlide: KeyframeFunc<void> = (cur, { beats }) =>
 
 export const ringBalance: KeyframeFunc<void> = (cur, { beats }) =>
   cur.map((dancer, id) => {
-    const partnerPosn = cur.get(partnerProtoId(id))!.posn;
-    const neighborPosn = cur.get(neighborProtoId(id))!.posn;
-    const center = vavg(partnerPosn, neighborPosn);
+    const [, partner] = getOther(cur, id, { relation: "partner" });
+    const [, neighbor] = getOther(cur, id, { relation: "neighbor" });
+    const center = vavg(partner.posn, neighbor.posn);
     const centerCcw = ccwTowards({ from: dancer.posn, to: center });
-    const centerward = (len: number) =>
-      center.clone().subtract(dancer.posn).normalize().multiplyScalar(len);
 
+    const rc = reCoord(dancer.posn, center);
     return moves(dancer, [
       {
         beats: beats / 4,
-        x: dancer.posn.clone().add(centerward(0.3)),
+        x: rc(0.3, 0.0),
         ccw: alignCcw({ dir: centerCcw, near: dancer.ccw }),
       },
       {
         beats: beats / 4,
-        x: dancer.posn.clone().add(centerward(0.3)),
+        x: rc(0.3, 0.0),
         ccw: alignCcw({ dir: centerCcw, near: dancer.ccw }),
       },
       {
@@ -217,17 +183,17 @@ export const ringBalance: KeyframeFunc<void> = (cur, { beats }) =>
 
 export const petronellaSpin: KeyframeFunc<void> = (cur, { beats }) =>
   cur.map((dancer, id) => {
-    const partnerPosn = cur.get(partnerProtoId(id))!.posn;
-    const neighborPosn = cur.get(neighborProtoId(id))!.posn;
-    const center = vavg(partnerPosn, neighborPosn);
+    const [, partner] = getOther(cur, id, { relation: "partner" });
+    const [, neighbor] = getOther(cur, id, { relation: "neighbor" });
+    const center = vavg(partner.posn, neighbor.posn);
     const centerCcw = ccwTowards({ from: dancer.posn, to: center });
     const finalPosn =
-      partnerPosn
+      partner.posn
         .clone()
         .subtract(dancer.posn)
-        .cross(neighborPosn.clone().subtract(dancer.posn)) > 0
-        ? partnerPosn
-        : neighborPosn;
+        .cross(neighbor.posn.clone().subtract(dancer.posn)) > 0
+        ? partner.posn
+        : neighbor.posn;
 
     // debugger;
     return moves(dancer, [
@@ -239,31 +205,18 @@ export const petronellaSpin: KeyframeFunc<void> = (cur, { beats }) =>
     ]);
   });
 
-export const balance: KeyframeFunc<void> = (cur, { beats }) =>
-  cur.map((dancer, id) => {
-    const expectedCounterpartPosn = move(dancer, { dx: fwd(2) }).posn;
-    const possibleCounterparts = cur
-      .entrySeq()
-      .filter(([, { posn }]) => posn.distance(expectedCounterpartPosn) < 0.5)
-      .toList();
-    if (possibleCounterparts.isEmpty()) {
-      throw new Error(`${id} has nobody to balance with`);
-    }
-    if (possibleCounterparts.size > 1) {
-      throw new Error(
-        `dancer ${id} isn't sure who to balance with: options ${possibleCounterparts}`
-      );
-    }
-    const [, counterpart] = possibleCounterparts.first()!;
-
+export const balance: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
+  cur.map((dancer, protoId) => {
+    const [, counterpart] = getOther(cur, protoId, other);
+    const rc = reCoord(dancer.posn, counterpart.posn);
     return moves(dancer, [
       {
         beats: beats / 4,
-        x: vavg(dancer.posn, counterpart.posn, [3, 1]),
+        x: rc(0.3, 0),
       },
       {
         beats: beats / 4,
-        x: vavg(dancer.posn, counterpart.posn, [3, 1]),
+        x: rc(0.3, 0),
       },
       { beats: beats / 4 },
       { beats: beats / 4 },
@@ -275,16 +228,7 @@ export const boxTheGnat: KeyframeFunc<{ whom: "partner" | "neighbor" }> = (
   { beats, whom }
 ) =>
   cur.map((dancer, protoId) => {
-    const counterpartId =
-      whom === "partner"
-        ? partnerId({ h4Id: 0, protoId })
-        : neighborId({ h4Id: 0, protoId });
-    if (!counterpartId) {
-      throw new Error(
-        `dancer ${protoId} failed to find somebody to box the gnat with`
-      );
-    }
-    const counterpart = getDancer(cur, counterpartId)!;
+    const [, counterpart] = getOther(cur, protoId, { relation: whom });
     const finalCcw =
       ccwTowards({ from: dancer.posn, to: counterpart.posn }) +
       (dancer.role === LARK ? -1 / 4 : 1 / 4);
@@ -316,47 +260,9 @@ export const rightLeftThrough: KeyframeFunc<void> = (cur, { beats }) =>
     ]);
   });
 
-export const larksRollAway: KeyframeFunc<{
-  whom: "partner" | "neighbor" | "toYourLeft" | "toYourRight";
-}> = (cur, { beats, whom }) =>
+export const larksRollAway: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
   cur.map((dancer, protoId) => {
-    const counterpartId = (() => {
-      switch (whom) {
-        case "partner":
-          return { h4Id: 0, protoId: partnerProtoId(protoId) };
-        case "neighbor":
-          return { h4Id: 0, protoId: neighborProtoId(protoId) };
-        case "toYourLeft":
-        case "toYourRight": {
-          return getNearbyDancers(cur, dancer.posn, 2.2)
-            .filter(({ role }) => role !== dancer.role)
-            .filter(
-              (cand) =>
-                cand.posn
-                  .clone()
-                  .subtract(dancer.posn)
-                  .normalize()
-                  .dot(instructionDir2Vec(cur, protoId, "inFrontOfYou")) > -0.1
-            )
-            .filter(
-              (cand) =>
-                cand.posn
-                  .clone()
-                  .subtract(dancer.posn)
-                  .normalize()
-                  .cross(instructionDir2Vec(cur, protoId, whom)) > 0 // TODO: why does this work even though it should be backwards for robins?
-            )
-            .entrySeq()
-            .minBy(([, cand]) => cand.posn.distance(dancer.posn))?.[0];
-        }
-      }
-    })();
-    if (!counterpartId) {
-      throw new Error(
-        `dancer ${protoId} failed to find ${whom} to roll away with`
-      );
-    }
-    const counterpart = getDancer(cur, counterpartId)!;
+    const [, counterpart] = getOther(cur, protoId, other);
     return moves(dancer, [
       {
         beats,
@@ -371,18 +277,18 @@ export const circle: KeyframeFunc<{
   spots: number;
 }> = (cur, { beats, handedness, spots }) =>
   cur.map((dancer, id) => {
-    const partnerPosn = cur.get(partnerProtoId(id))!.posn;
-    const neighborPosn = cur.get(neighborProtoId(id))!.posn;
-    const oppositePosn = cur.get(partnerProtoId(neighborProtoId(id)))!.posn;
+    const [, partner] = getOther(cur, id, { relation: "partner" });
+    const [, neighbor] = getOther(cur, id, { relation: "neighbor" });
+    const [, opposite] = getOther(cur, id, { relation: "opposite" });
     const rightPosn =
-      partnerPosn
+      partner.posn
         .clone()
         .subtract(dancer.posn)
-        .cross(neighborPosn.clone().subtract(dancer.posn)) > 0
-        ? partnerPosn
-        : neighborPosn;
-    const leftPosn = rightPosn === partnerPosn ? neighborPosn : partnerPosn;
-    const leftPosns = [dancer.posn, leftPosn, oppositePosn, rightPosn];
+        .cross(neighbor.posn.clone().subtract(dancer.posn)) > 0
+        ? partner.posn
+        : neighbor.posn;
+    const leftPosn = rightPosn === partner.posn ? neighbor.posn : partner.posn;
+    const leftPosns = [dancer.posn, leftPosn, opposite.posn, rightPosn];
 
     return moves(
       dancer,
@@ -402,24 +308,28 @@ export const passThrough: KeyframeFunc<void> = (cur, { beats }) =>
     ])
   );
 
-export const doSiDo1: KeyframeFunc<void> = (cur, { beats }) =>
-  cur.map((dancer) =>
-    moves(dancer, [
-      { beats: beats / 4, dx: fwd(1).add(left(0.3)) },
-      { beats: beats / 4, dx: fwd(2) },
-      { beats: beats / 4, dx: fwd(1).add(right(0.3)) },
+export const doSiDo1: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
+  cur.map((dancer, protoId) => {
+    const [, counterpart] = getOther(cur, protoId, other);
+    const rc = reCoord(dancer.posn, counterpart.posn);
+    return moves(dancer, [
+      { beats: beats / 4, x: rc(0.5, 0.2) },
+      { beats: beats / 4, x: rc(1.0, 0.0) },
+      { beats: beats / 4, x: rc(0.5, -0.2) },
       { beats: beats / 4 },
-    ])
-  );
+    ]);
+  });
 
-export const doSiDo112: KeyframeFunc<void> = (cur, { beats }) =>
-  cur.map((dancer) =>
-    moves(dancer, [
-      { beats: beats / 6, dx: fwd(1).add(left(0.3)) },
-      { beats: beats / 6, dx: fwd(2) },
-      { beats: beats / 6, dx: fwd(1).add(right(0.3)) },
-      { beats: beats / 6 },
-      { beats: beats / 6, dx: fwd(1).add(left(0.3)) },
-      { beats: beats / 6, dx: fwd(2) },
-    ])
-  );
+export const doSiDo112: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
+  cur.map((dancer, protoId) => {
+    const [, counterpart] = getOther(cur, protoId, other);
+    const rc = reCoord(dancer.posn, counterpart.posn);
+    return moves(dancer, [
+      { beats: beats / 6, x: rc(0.5, +0.2) },
+      { beats: beats / 6, x: rc(1.0, +0.0) },
+      { beats: beats / 6, x: rc(0.5, -0.2) },
+      { beats: beats / 6, x: rc(0.0, +0.0) },
+      { beats: beats / 6, x: rc(0.5, +0.2) },
+      { beats: beats / 6, x: rc(1, 0) },
+    ]);
+  });

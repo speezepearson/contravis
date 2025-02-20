@@ -50,11 +50,16 @@ export interface DancerState {
 }
 export type DancerKeyframe = { beats: number; end: DancerState };
 
+export type Other = {
+  relation: "partner" | "neighbor" | "opposite";
+  h4Offset?: number;
+};
+
 export type ByProto<T> = Map<ProtoId, T>;
 export type Figure = { beats: number } & (
-  | { name: "swing" }
-  | { name: "balance" }
-  | { name: "robinsChain" }
+  | ({ name: "swing" } & Other)
+  | ({ name: "balance" } & Other)
+  | ({ name: "robinsChain" } & Other)
   | { name: "formWave" }
   | { name: "waveBalanceBellySlide" }
   | {
@@ -65,18 +70,15 @@ export type Figure = { beats: number } & (
     }
   | { name: "boxTheGnat"; whom: "partner" | "neighbor" }
   | { name: "rightLeftThrough" }
-  | {
-      name: "larksRollAway";
-      whom: "partner" | "neighbor" | "toYourLeft" | "toYourRight";
-    }
+  | ({ name: "larksRollAway" } & Other)
   | {
       name: "circle";
       handedness: "left" | "right";
       spots: number;
     }
   | { name: "passThrough" }
-  | { name: "doSiDo1" }
-  | { name: "doSiDo112" }
+  | ({ name: "doSiDo1" } & Other)
+  | ({ name: "doSiDo112" } & Other)
   | {
       name: "custom";
       buildKeyframes: (

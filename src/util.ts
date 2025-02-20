@@ -7,6 +7,7 @@ import {
   DancerState,
   InstructionDir,
   LARK,
+  Other,
   parseDancerId,
   ProtoId,
   ROBIN,
@@ -94,6 +95,28 @@ export function h4Offset(dancer: DancerState, h4Id: number): DancerState {
     ...dancer,
     posn: dancer.posn.clone().addScalarY(LENGTH_PERIOD * h4Id),
   };
+}
+
+export function getOther(
+  protoStates: ByProto<DancerState>,
+  protoId: ProtoId,
+  { relation, h4Offset }: Other,
+  maxDist: number = LENGTH_PERIOD * 0.99
+): [DancerId, DancerState] {
+  const otherId = {
+    h4Id:
+      (h4Offset ?? 0) *
+      (protoStates.get(protoId)!.progressDirection === "up" ? 1 : -1),
+    protoId:
+      relation === "partner"
+        ? partnerProtoId(protoId)
+        : neighborProtoId(protoId),
+  };
+  const otherState = getDancer(protoStates, otherId);
+  if (otherState.posn.distance(protoStates.get(protoId)!.posn) > maxDist) {
+    throw new Error(`${protoId} is too far from ${JSON.stringify(otherId)}`);
+  }
+  return [otherId, otherState];
 }
 
 export function getDancer(
@@ -231,70 +254,6 @@ export function neighborId(
   return { protoId: neighborProtoId(id.protoId), h4Id: id.h4Id + h4Offset };
 }
 
-/**
- * Find which dancer is closest to the given dancer in a given direction.
- */
-export function find1(
-  protoStates: ByProto<DancerState>,
-  protoId: ProtoId,
-  dir: InstructionDir,
-  { role }: { role?: Role } = {}
-): [DancerId, DancerState] | undefined {
-  const targetDirVec = instructionDir2Vec(protoStates, protoId, dir);
-
-  const { posn } = protoStates.get(protoId)!;
-
-  return getNearbyDancers(protoStates, posn, LENGTH_PERIOD)
-    .mapKeys(structuredDancerId)
-    .filter((_, d) => !(d.protoId === protoId && d.h4Id === 0))
-    .filter((_, { protoId }) => role === undefined || role === id2role(protoId))
-    .filter(
-      (cand) =>
-        cand.posn.clone().subtract(posn).normalize().dot(targetDirVec) > 0.8
-    )
-    .entrySeq()
-    .minBy(([, d]) => d.posn.distance(posn));
-}
-
-export function find(
-  protoStates: ByProto<DancerState>,
-  dir: InstructionDir,
-  {
-    role,
-    ensureSymmetric = false,
-  }: { role?: Role | "same" | "other"; ensureSymmetric?: boolean } = {}
-): ByProto<DancerId | undefined> {
-  const counterpartIds = protoStates.map(
-    (state, id) =>
-      find1(protoStates, id, dir, {
-        role:
-          role === "same"
-            ? state.role
-            : role === "other"
-            ? otherRole(state.role)
-            : role,
-      })?.[0]
-  );
-  if (ensureSymmetric) {
-    for (const [protoId, cpid] of counterpartIds.entries()) {
-      if (cpid === undefined) {
-        throw new Error("todo");
-      }
-      const cpcpid = counterpartIds.get(cpid.protoId);
-      if (cpcpid === undefined) {
-        throw new Error("todo");
-      }
-      if (cpcpid.protoId !== protoId) {
-        throw new Error("todo");
-      }
-      if (cpcpid.h4Id !== -cpid.h4Id) {
-        throw new Error("todo");
-      }
-    }
-  }
-  return counterpartIds;
-}
-
 export function id2role(id: ProtoId): Role {
   switch (id) {
     case "L1":
@@ -311,17 +270,17 @@ export function otherRole(role: Role): Role {
 
 export function reCoord(
   origin: Victor,
-  x1: Victor,
-  { x, y }: { x: number; y: number }
-): Victor {
+  x1: Victor
+): (x: number, y: number) => Victor {
   const delta = x1.clone().subtract(origin);
-  return origin
-    .clone()
-    .add(delta.clone().multiplyScalar(x))
-    .add(
-      delta
-        .clone()
-        .rotate(Math.PI / 2)
-        .multiplyScalar(y)
-    );
+  return (x, y) =>
+    origin
+      .clone()
+      .add(delta.clone().multiplyScalar(x))
+      .add(
+        delta
+          .clone()
+          .rotate(Math.PI / 2)
+          .multiplyScalar(y)
+      );
 }

@@ -4,7 +4,6 @@ import { List, Map } from "immutable";
 import Victor from "victor";
 import { robinsChain, swing } from "./figures";
 import { initImproper, initBeckett } from "./formations";
-import { find, find1 } from "./util";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const deepRound = (x: any): any => {
@@ -123,63 +122,13 @@ describe("initBeckett", () => {
   });
 });
 
-describe("find1", () => {
-  test("improper", () => {
-    const state = initImproper();
-    const partner = find1(state, "L1", "towardsYourPartner");
-    expect(partner).toEqual([{ h4Id: 0, protoId: "R1" }, state.get("R1")!]);
-
-    const neighbor = find1(state, "L1", "towardsYourNeighbor");
-    expect(neighbor).toEqual([{ h4Id: 0, protoId: "R2" }, state.get("R2")!]);
-  });
-
-  test("beckett", () => {
-    const state = initBeckett();
-    const partner = find1(state, "L1", "towardsYourPartner");
-    expect(partner).toEqual([{ h4Id: 0, protoId: "R1" }, state.get("R1")!]);
-
-    const neighbor = find1(state, "L1", "towardsYourNeighbor");
-    expect(neighbor).toEqual([{ h4Id: 0, protoId: "R2" }, state.get("R2")!]);
-  });
-});
-
-describe("find", () => {
-  test("improper", () => {
-    const state = initImproper();
-    const partners = find(state, "towardsYourPartner");
-    expect(partners.get("L1")).toStrictEqual({ h4Id: 0, protoId: "R1" });
-    expect(partners.get("R1")).toStrictEqual({ h4Id: 0, protoId: "L1" });
-    expect(partners.get("L2")).toStrictEqual({ h4Id: 0, protoId: "R2" });
-    expect(partners.get("R2")).toStrictEqual({ h4Id: 0, protoId: "L2" });
-
-    const neighbors = find(state, "inFrontOfYou");
-    expect(neighbors.get("L1")).toStrictEqual({ h4Id: 0, protoId: "R2" });
-    expect(neighbors.get("R1")).toStrictEqual({ h4Id: 0, protoId: "L2" });
-    expect(neighbors.get("L2")).toStrictEqual({ h4Id: 0, protoId: "R1" });
-    expect(neighbors.get("R2")).toStrictEqual({ h4Id: 0, protoId: "L1" });
-  });
-
-  test("beckett", () => {
-    const state = initBeckett();
-    const partners = find(state, "towardsYourPartner");
-    expect(partners.get("L1")).toStrictEqual({ h4Id: 0, protoId: "R1" });
-    expect(partners.get("R1")).toStrictEqual({ h4Id: 0, protoId: "L1" });
-    expect(partners.get("L2")).toStrictEqual({ h4Id: 0, protoId: "R2" });
-    expect(partners.get("R2")).toStrictEqual({ h4Id: 0, protoId: "L2" });
-
-    const neighbors = find(state, "inFrontOfYou");
-    expect(neighbors.get("L1")).toStrictEqual({ h4Id: 0, protoId: "R2" });
-    expect(neighbors.get("R1")).toStrictEqual({ h4Id: 0, protoId: "L2" });
-    expect(neighbors.get("L2")).toStrictEqual({ h4Id: 0, protoId: "R1" });
-    expect(neighbors.get("R2")).toStrictEqual({ h4Id: 0, protoId: "L1" });
-  });
-});
-
 describe("swing", () => {
   test("smoke", () => {
     const state = initImproper();
     const end = deepRound(
-      swing(state, { beats: 8 }).map((kfs) => kfs.last()?.end)
+      swing(state, { beats: 8, relation: "neighbor" }).map(
+        (kfs) => kfs.last()?.end
+      )
     );
     expect(end.get("L1")).toMatchObject({
       posn: new Victor(-1, 2),
@@ -199,16 +148,20 @@ describe("swing", () => {
     });
   });
 
-  test("throws if no candidates to swing with", () => {
-    const state = initBeckett().filter((_, id) => id !== "L1");
-    expect(() => swing(state, { beats: 8 })).toThrow(/nobody to swing with/);
+  test("throws if target is across the set", () => {
+    const state = initBeckett();
+    expect(() => swing(state, { beats: 8, relation: "neighbor" })).toThrow(
+      /across the set/
+    );
   });
 });
 
 describe("robinsChainAcross", () => {
   test("smoke", () => {
     const state = initBeckett();
-    const end = robinsChain(state, { beats: 8 }).map((kfs) => kfs.last()?.end);
+    const end = robinsChain(state, { beats: 8, relation: "neighbor" }).map(
+      (kfs) => kfs.last()?.end
+    );
     expect(end.get("L1") ?? state.get("L1")).toEqual({
       ...state.get("L1"),
       ccw: state.get("L1")!.ccw + 1,
@@ -226,5 +179,12 @@ describe("robinsChainAcross", () => {
       posn: state.get("R1")!.posn,
       ccw: state.get("R2")!.ccw + 1 / 2,
     });
+  });
+
+  test("throws if target is on the same side of the set", () => {
+    const state = initBeckett();
+    expect(() => robinsChain(state, { beats: 8, relation: "partner" })).toThrow(
+      /same side of the set/
+    );
   });
 });

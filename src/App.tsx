@@ -270,6 +270,7 @@ function ContraDance() {
           >
             {dance.init.entrySeq().flatMap(([protoId, dancer]) =>
               showH4Ids.map((h4Id) => {
+                const goingUp = dancer.progressDirection === "up";
                 return (
                   <div
                     key={`${protoId} ${h4Id}`}
@@ -282,13 +283,9 @@ function ContraDance() {
                           stringifyDancerId({ protoId, h4Id })
                         )}
                         label={`${dancer.role === LARK ? "L" : "R"}${
-                          dancer.progressDirection === "up" ? "1" : "2"
+                          goingUp ? "1" : "2"
                         }.${h4Id}`}
-                        fill={
-                          dancer.progressDirection === "up"
-                            ? "#00000044"
-                            : "none"
-                        }
+                        fill={goingUp ? "#00000044" : "none"}
                         scale={pxPerPace}
                       />
                     ) : (
@@ -297,13 +294,9 @@ function ContraDance() {
                           stringifyDancerId({ protoId, h4Id })
                         )}
                         label={`${dancer.role === LARK ? "L" : "R"}${
-                          dancer.progressDirection === "up" ? "1" : "2"
+                          goingUp ? "1" : "2"
                         }.${h4Id}`}
-                        fill={
-                          dancer.progressDirection === "up"
-                            ? "#00000044"
-                            : "none"
-                        }
+                        fill={goingUp ? "#00000044" : "none"}
                         scale={pxPerPace}
                       />
                     )}
