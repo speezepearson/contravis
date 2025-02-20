@@ -1,5 +1,5 @@
 import Victor from "victor";
-import { LARK, ROBIN, alignCcw, KeyframeFunc, Other } from "./types";
+import { LARK, ROBIN, alignCcw, KeyframeFunc, Other, PD_UP } from "./types";
 import {
   ccwTowards,
   reCoord,
@@ -116,16 +116,16 @@ export const formWave: KeyframeFunc<void> = (cur, { beats }) =>
           .add(
             new Victor(
               0,
-              dancer.progressDirection === "up" ? 1 : -1
+              dancer.progressDirection === PD_UP ? 1 : -1
             ).multiplyScalar(3 / 4)
           )
           .add(
-            new Victor(0, dancer.progressDirection === "up" ? 1 : -1)
+            new Victor(0, dancer.progressDirection === PD_UP ? 1 : -1)
               .multiplyScalar(1 / 2)
               .rotate(Math.PI / 2)
           ),
         ccw: alignCcw({
-          dir: dancer.progressDirection === "up" ? 1 / 4 : -1 / 4,
+          dir: dancer.progressDirection === PD_UP ? 1 / 4 : -1 / 4,
           near: dancer.ccw,
         }),
       },

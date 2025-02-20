@@ -9,6 +9,7 @@ import {
   LARK,
   Other,
   parseDancerId,
+  PD_UP,
   ProtoId,
   ROBIN,
   Role,
@@ -66,7 +67,7 @@ export function getOther(
   const otherId = {
     h4Id:
       (h4Offset ?? 0) *
-      (protoStates.get(protoId)!.progressDirection === "up" ? 1 : -1),
+      (protoStates.get(protoId)!.progressDirection === PD_UP ? 1 : -1),
     protoId:
       relation === "partner"
         ? partnerProtoId(protoId)

@@ -11,6 +11,7 @@ import {
   Dance,
   Call,
   Figure,
+  PD_UP,
 } from "./types";
 import { instructionDir2Ccw } from "./util";
 import {
@@ -37,7 +38,7 @@ export const right = (len: number = 1) => new Victor(0, -len);
 export const partnerward = ({ role }: { role: Role }, len: number = 1) =>
   role === LARK ? right(len) : left(len);
 export const progressward = (dancer: DancerState, len: number = 1) =>
-  dancer.progressDirection === "up" ? new Victor(0, len) : new Victor(0, -len);
+  dancer.progressDirection === PD_UP ? new Victor(0, len) : new Victor(0, -len);
 export const crossSet = (
   dancer: Pick<DancerState, "ccw" | "posn">,
   len: number = 1

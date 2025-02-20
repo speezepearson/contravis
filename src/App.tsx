@@ -11,6 +11,7 @@ import {
   ByProto,
   Dance,
   stringifyDancerId,
+  PD_UP,
 } from "./types";
 import { LARK, DancerIdStr } from "./types";
 import { earlyEveningRollaway } from "./dances";
@@ -270,7 +271,7 @@ function ContraDance() {
           >
             {dance.init.entrySeq().flatMap(([protoId, dancer]) =>
               showH4Ids.map((h4Id) => {
-                const goingUp = dancer.progressDirection === "up";
+                const goingUp = dancer.progressDirection === PD_UP;
                 return (
                   <div
                     key={`${protoId} ${h4Id}`}
