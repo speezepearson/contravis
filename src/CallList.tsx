@@ -1,7 +1,7 @@
 import { List } from "immutable";
 import { useMemo } from "react";
 import { AddCallForm } from "./AddCallForm";
-import { Call } from "./types";
+import { Call, CounterpartRef } from "./types";
 import { CompositionError } from "./contra";
 
 type CallListProps = {
@@ -161,6 +161,63 @@ function OffsetDropdown({
   );
 }
 
+function CounterpartDropdown({
+  value,
+  onChange,
+}: {
+  value: CounterpartRef;
+  onChange: (value: CounterpartRef) => void;
+}) {
+  const relationDropdown = (
+    <SimpleDropdown
+      value={value.relation}
+      options={["partner", "neighbor", "shadow", "opposite"]}
+      onChange={(v) => onChange({ ...value, relation: v })}
+    />
+  );
+  switch (value.relation) {
+    case "partner":
+      return relationDropdown;
+    case "neighbor":
+      return (
+        <>
+          <OffsetDropdown
+            value={value.h4Offset}
+            onChange={(v) => onChange({ ...value, h4Offset: v })}
+          />
+          {relationDropdown}
+        </>
+      );
+    case "shadow":
+      return (
+        <>
+          <select
+            value={value.larkH4Offset || 1}
+            onChange={(e) =>
+              onChange({ ...value, larkH4Offset: parseInt(e.target.value) })
+            }
+          >
+            <option value={-2}>L--R++</option>
+            <option value={-1}>L-R+</option>
+            <option value={1}>L+R-</option>
+            <option value={2}>L++R--</option>
+          </select>
+          {relationDropdown}
+        </>
+      );
+    case "opposite":
+      return (
+        <>
+          <OffsetDropdown
+            value={value.h4Offset}
+            onChange={(v) => onChange({ ...value, h4Offset: v })}
+          />
+          {relationDropdown}
+        </>
+      );
+  }
+}
+
 function CallElem({
   call,
   setCall,
@@ -196,14 +253,9 @@ function CallElem({
       return (
         <>
           swing your{" "}
-          <OffsetDropdown
-            value={call.h4Offset}
-            onChange={(v) => setCall({ ...call, h4Offset: v })}
-          />
-          <SimpleDropdown
-            value={call.relation}
-            options={["partner", "neighbor"]}
-            onChange={(v) => setCall({ ...call, relation: v })}
+          <CounterpartDropdown
+            value={call}
+            onChange={(v) => setCall({ ...call, ...v })}
           />
         </>
       );
@@ -211,14 +263,9 @@ function CallElem({
       return (
         <>
           robins chain to your{" "}
-          <OffsetDropdown
-            value={call.h4Offset}
-            onChange={(v) => setCall({ ...call, h4Offset: v })}
-          />
-          <SimpleDropdown
-            value={call.relation}
-            options={["partner", "neighbor"]}
-            onChange={(v) => setCall({ ...call, relation: v })}
+          <CounterpartDropdown
+            value={call}
+            onChange={(v) => setCall({ ...call, ...v })}
           />
         </>
       );
@@ -234,14 +281,9 @@ function CallElem({
       return (
         <>
           balance with your{" "}
-          <OffsetDropdown
-            value={call.h4Offset}
-            onChange={(v) => setCall({ ...call, h4Offset: v })}
-          />
-          <SimpleDropdown
-            value={call.relation}
-            options={["partner", "neighbor"]}
-            onChange={(v) => setCall({ ...call, relation: v })}
+          <CounterpartDropdown
+            value={call}
+            onChange={(v) => setCall({ ...call, ...v })}
           />
         </>
       );
@@ -249,14 +291,9 @@ function CallElem({
       return (
         <>
           box the gnat with your{" "}
-          <OffsetDropdown
-            value={call.h4Offset}
-            onChange={(v) => setCall({ ...call, h4Offset: v })}
-          />
-          <SimpleDropdown
-            value={call.relation}
-            options={["partner", "neighbor"]}
-            onChange={(v) => setCall({ ...call, relation: v })}
+          <CounterpartDropdown
+            value={call}
+            onChange={(v) => setCall({ ...call, ...v })}
           />
         </>
       );
@@ -265,15 +302,10 @@ function CallElem({
     case "larksRollAway":
       return (
         <>
-          larks roll away from your{" "}
-          <OffsetDropdown
-            value={call.h4Offset}
-            onChange={(v) => setCall({ ...call, h4Offset: v })}
-          />
-          <SimpleDropdown
-            value={call.relation}
-            options={["partner", "neighbor"]}
-            onChange={(v) => setCall({ ...call, relation: v })}
+          larks roll away your{" "}
+          <CounterpartDropdown
+            value={call}
+            onChange={(v) => setCall({ ...call, ...v })}
           />
         </>
       );
@@ -305,14 +337,9 @@ function CallElem({
       return (
         <>
           do si do with your{" "}
-          <OffsetDropdown
-            value={call.h4Offset}
-            onChange={(v) => setCall({ ...call, h4Offset: v })}
-          />
-          <SimpleDropdown
-            value={call.relation}
-            options={["partner", "neighbor"]}
-            onChange={(v) => setCall({ ...call, relation: v })}
+          <CounterpartDropdown
+            value={call}
+            onChange={(v) => setCall({ ...call, ...v })}
           />
         </>
       );
@@ -320,14 +347,9 @@ function CallElem({
       return (
         <>
           do si do 1 1/2 with your{" "}
-          <OffsetDropdown
-            value={call.h4Offset}
-            onChange={(v) => setCall({ ...call, h4Offset: v })}
-          />
-          <SimpleDropdown
-            value={call.relation}
-            options={["partner", "neighbor"]}
-            onChange={(v) => setCall({ ...call, relation: v })}
+          <CounterpartDropdown
+            value={call}
+            onChange={(v) => setCall({ ...call, ...v })}
           />
         </>
       );

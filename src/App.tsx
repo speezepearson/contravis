@@ -4,7 +4,11 @@ import anime from "animejs";
 
 import { List, Map } from "immutable";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { executeDance, CompositionError } from "./contra";
+import {
+  executeDance,
+  CompositionError,
+  checkInvalidDanceReason,
+} from "./contra";
 import {
   DancerKeyframe,
   DancerState,
@@ -55,6 +59,10 @@ function ContraDance() {
   >(Map());
 
   const [dance, setDance] = useState<Dance>(earlyEveningRollaway());
+  const invalidDanceReason = useMemo(
+    () => checkInvalidDanceReason(dance),
+    [dance]
+  );
   const [keyframes, compositionError]: [
     ByProto<List<DancerKeyframe>>,
     CompositionError | null
@@ -98,9 +106,10 @@ function ContraDance() {
         }, 0) ?? 0,
     [keyframes]
   );
-  const nAnimatedBeats = compositionError
-    ? nBeatsChoreographed - 0.01
-    : 2 * nBeatsChoreographed;
+  const nAnimatedBeats =
+    compositionError || invalidDanceReason
+      ? nBeatsChoreographed - 0.01
+      : 2 * nBeatsChoreographed;
 
   const anim = useRef(anime.timeline({ autoplay: false }));
   useEffect(() => {
@@ -250,7 +259,10 @@ function ContraDance() {
           onChange={(e) => setBeatsPerSec(parseFloat(e.target.value))}
         />{" "}
         Current beat:
-        {beat.toFixed(0)} {/*curKeyframe.happening*/}
+        {beat.toFixed(0)} {/*curKeyframe.happening*/}{" "}
+        {invalidDanceReason && (
+          <span style={{ color: "red" }}>{invalidDanceReason}</span>
+        )}
       </div>
       {/* {focusedDancerId && (
         <div>
@@ -272,7 +284,7 @@ function ContraDance() {
             style={{
               position: "relative",
               overflow: "hidden",
-              width: 2 * LENGTH_PERIOD * pxPerPace,
+              width: 4 * LENGTH_PERIOD * pxPerPace,
               height: 1.5 * LENGTH_PERIOD * pxPerPace,
               border: "1px solid black",
             }}
@@ -291,9 +303,7 @@ function ContraDance() {
                         ref={setDancerRef.get(
                           stringifyDancerId({ protoId, h4Id })
                         )}
-                        label={`${dancer.role === LARK ? "L" : "R"}${
-                          goingUp ? "1" : "2"
-                        }.${h4Id}`}
+                        label={stringifyDancerId({ protoId, h4Id })}
                         fill={goingUp ? "#00000044" : "none"}
                         scale={pxPerPace}
                       />
@@ -302,9 +312,7 @@ function ContraDance() {
                         ref={setDancerRef.get(
                           stringifyDancerId({ protoId, h4Id })
                         )}
-                        label={`${dancer.role === LARK ? "L" : "R"}${
-                          goingUp ? "1" : "2"
-                        }.${h4Id}`}
+                        label={stringifyDancerId({ protoId, h4Id })}
                         fill={goingUp ? "#00000044" : "none"}
                         scale={pxPerPace}
                       />

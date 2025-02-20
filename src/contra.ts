@@ -1,4 +1,4 @@
-import { List } from "immutable";
+import { List, Map } from "immutable";
 import Victor from "victor";
 import {
   InstructionDir,
@@ -12,8 +12,9 @@ import {
   Call,
   Figure,
   PD_UP,
+  ProtoId,
 } from "./types";
-import { instructionDir2Ccw } from "./util";
+import { instructionDir2Ccw, LENGTH_PERIOD } from "./util";
 import {
   swing,
   balance,
@@ -219,5 +220,48 @@ export class CompositionError extends Error {
     this.name = "CompositionError";
     this.partial = partial;
     this.call = call;
+  }
+}
+
+export function checkInvalidDanceReason(dance: Dance): string | null {
+  try {
+    const starts = dance.init;
+    const kfss = executeDance(dance);
+
+    const totalBeats = kfss
+      .valueSeq()
+      .first()!
+      .map(({ beats }) => beats)
+      .reduce((acc, b) => acc + b, 0);
+    if (Math.round(totalBeats) !== 64) {
+      return `dance is not 64 beats`;
+    }
+
+    const ends = kfss.map((kfs) => kfs.last()!.end);
+    let halfPeriodsProgressed = Map<ProtoId, number>();
+    for (const [id, end] of ends.entries()) {
+      const start = starts.get(id)!;
+      if (Math.abs(end.posn.x - start.posn.x) > 0.001) {
+        return `dancer ${id} got out of line`;
+      }
+      halfPeriodsProgressed = halfPeriodsProgressed.set(
+        id,
+        ((end.posn.y - start.posn.y) *
+          (start.progressDirection == PD_UP ? 1 : -1)) /
+          (LENGTH_PERIOD / 2)
+      );
+    }
+    for (const [id, halfPeriods] of halfPeriodsProgressed.entries()) {
+      if (Math.abs(halfPeriods) < 0.8) {
+        return `dancer ${id} didn't progress`;
+      }
+      if (Math.abs(halfPeriods - Math.round(halfPeriods)) > 0.001) {
+        return `dancer ${id} didn't progress a whole number of rows`;
+      }
+    }
+
+    return null;
+  } catch (e) {
+    return errstr(e);
   }
 }

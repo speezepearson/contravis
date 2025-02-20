@@ -36,7 +36,7 @@ export function earlyEveningRollaway(): Dance {
       { beats: 4, name: "balance", relation: "partner" },
       { beats: 4, name: "rightLeftThrough" },
       { beats: 8, name: "robinsChain", relation: "partner" },
-      { beats: 4, name: "ringBalance" },
+      { beats: 4, name: "ringBalance", relation: "neighbor" },
       { beats: 4, name: "larksRollAway", relation: "neighbor" },
       { endThatMoveFacing: "towardsYourPartner" },
       { beats: 8, name: "swing", relation: "partner" },

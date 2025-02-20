@@ -29,13 +29,13 @@ export const alignCcw = ({ dir, near }: { dir: CcwTurns; near: CcwTurns }) =>
   dir + Math.round(near - dir);
 
 export type ProtoId = "L1" | "R1" | "L2" | "R2";
-export type DancerIdStr = `${ProtoId} ${number}`;
+export type DancerIdStr = `${ProtoId}.${number}`;
 export interface DancerId {
   readonly protoId: ProtoId;
   readonly h4Id: number;
 }
 export function stringifyDancerId({ protoId, h4Id }: DancerId): DancerIdStr {
-  return `${protoId} ${h4Id}`;
+  return `${protoId}.${h4Id}`;
 }
 export function parseDancerId(id: DancerIdStr): DancerId {
   const [protoId, h4Id] = id.split(" ");
@@ -50,35 +50,32 @@ export interface DancerState {
 }
 export type DancerKeyframe = { beats: number; end: DancerState };
 
-export type Other = {
-  relation: "partner" | "neighbor" | "opposite";
-  h4Offset?: number;
-};
+export type CounterpartRef =
+  | { relation: "partner" }
+  | { relation: "shadow"; larkH4Offset?: number }
+  | { relation: "neighbor"; h4Offset?: number }
+  | { relation: "opposite"; h4Offset?: number };
 
 export type ByProto<T> = Map<ProtoId, T>;
 export type Figure = { beats: number } & (
-  | ({ name: "swing" } & Other)
-  | ({ name: "balance" } & Other)
-  | ({ name: "robinsChain" } & Other)
+  | ({ name: "swing" } & CounterpartRef)
+  | ({ name: "balance" } & CounterpartRef)
+  | ({ name: "robinsChain" } & CounterpartRef)
   | { name: "formWave" }
   | { name: "waveBalanceBellySlide" }
-  | {
-      name: "ringBalance";
-    }
-  | {
-      name: "petronellaSpin";
-    }
-  | ({ name: "boxTheGnat" } & Other)
+  | { name: "ringBalance" }
+  | { name: "petronellaSpin" }
+  | ({ name: "boxTheGnat" } & CounterpartRef)
   | { name: "rightLeftThrough" }
-  | ({ name: "larksRollAway" } & Other)
+  | ({ name: "larksRollAway" } & CounterpartRef)
   | {
       name: "circle";
       handedness: "left" | "right";
       spots: number;
     }
   | { name: "passThrough" }
-  | ({ name: "doSiDo1" } & Other)
-  | ({ name: "doSiDo112" } & Other)
+  | ({ name: "doSiDo1" } & CounterpartRef)
+  | ({ name: "doSiDo112" } & CounterpartRef)
   | {
       name: "custom";
       buildKeyframes: (

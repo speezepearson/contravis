@@ -5,11 +5,11 @@ import { List } from "immutable";
 const callMenu = List<{ text: string; call: Call }>([
   {
     text: "partner balance",
-    call: { name: "balance", beats: 8, relation: "partner" },
+    call: { name: "balance", beats: 2, relation: "partner" },
   },
   {
     text: "neighbor balance",
-    call: { name: "balance", beats: 8, relation: "neighbor" },
+    call: { name: "balance", beats: 2, relation: "neighbor" },
   },
   {
     text: "partner swing",

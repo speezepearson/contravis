@@ -1,19 +1,35 @@
 import Victor from "victor";
-import { LARK, ROBIN, alignCcw, KeyframeFunc, Other, PD_UP } from "./types";
+import {
+  LARK,
+  ROBIN,
+  alignCcw,
+  KeyframeFunc,
+  CounterpartRef,
+  PD_UP,
+  stringifyDancerId,
+} from "./types";
 import {
   ccwTowards,
   reCoord,
   mathmod,
   sameSideOfSet,
   vavg,
-  getOther,
+  getCounterpart,
   isFacing,
+  LENGTH_PERIOD,
 } from "./util";
 import { fwd, left, move, moves, partnerward, right } from "./contra";
 
-export const swing: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
+export const swing: KeyframeFunc<CounterpartRef> = (
+  cur,
+  { beats, ...counterpartRef }
+) =>
   cur.map((dancer, protoId) => {
-    const [counterpartId, counterpart] = getOther(cur, protoId, other);
+    const [counterpartId, counterpart] = getCounterpart(
+      cur,
+      protoId,
+      counterpartRef
+    );
     if (!sameSideOfSet(dancer.posn, counterpart.posn)) {
       throw new Error(
         `${protoId} is trying to swing with somebody across the set`
@@ -21,7 +37,7 @@ export const swing: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
     }
     if (!isFacing(dancer, counterpart.posn, { maxTurns: 0.501 })) {
       throw new Error(
-        `${protoId} is trying to swing with somebody (${JSON.stringify(
+        `${protoId} is trying to swing with somebody (${stringifyDancerId(
           counterpartId
         )}) they're not facing`
       );
@@ -91,7 +107,10 @@ export const swing: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
     }
   });
 
-export const robinsChain: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
+export const robinsChain: KeyframeFunc<CounterpartRef> = (
+  cur,
+  { beats, ...counterpart }
+) =>
   cur.map((dancer, protoId) => {
     if (dancer.role === LARK) {
       return moves(dancer, [
@@ -100,19 +119,28 @@ export const robinsChain: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
         { beats: beats / 4, dccw: 1 },
       ]);
     } else {
-      const [, turner] = getOther(cur, protoId, other);
+      const [turnerId, turner] = getCounterpart(cur, protoId, counterpart, {
+        maxDist: LENGTH_PERIOD * 1.5,
+      });
       if (sameSideOfSet(dancer.posn, turner.posn)) {
         throw new Error(
-          `${protoId} is trying to chain to somebody on the same side of the set`
+          `${stringifyDancerId({
+            protoId,
+            h4Id: 0,
+          })} is trying to chain to somebody (${stringifyDancerId(
+            turnerId
+          )}) on the same side of the set`
         );
       }
 
       return moves(dancer, [
-        { beats: beats / 4, dx: fwd(1).add(left(1.3)), dccw: 1 / 4 },
-        { beats: beats / 4, dx: fwd(2).add(left(1)), dccw: 0 },
-        { beats: beats / 4, dx: fwd(2.5).add(left(1.5)), dccw: 1 / 4 },
+        // commented out for now because it doesn't generalize to diagonal chains
+        // { beats: beats / 4, dx: fwd(1).add(left(1.3)), dccw: 1 / 4 },
+        // { beats: beats / 4, dx: fwd(2).add(left(1)), dccw: 0 },
+        // { beats: beats / 4, dx: fwd(2.5).add(left(1.5)), dccw: 1 / 4 },
         {
-          beats: beats / 4,
+          beats: beats,
+          // beats: beats / 4,
           x: turner.posn.clone().addScalarY(turner.posn.x < 0 ? -2 : 2),
           dccw: 1 / 2,
         },
@@ -167,8 +195,8 @@ export const waveBalanceBellySlide: KeyframeFunc<void> = (cur, { beats }) =>
 
 export const ringBalance: KeyframeFunc<void> = (cur, { beats }) =>
   cur.map((dancer, id) => {
-    const [, partner] = getOther(cur, id, { relation: "partner" });
-    const [, neighbor] = getOther(cur, id, { relation: "neighbor" });
+    const [, partner] = getCounterpart(cur, id, { relation: "partner" });
+    const [, neighbor] = getCounterpart(cur, id, { relation: "neighbor" });
     const center = vavg(partner.posn, neighbor.posn);
     const centerCcw = ccwTowards({ from: dancer.posn, to: center });
 
@@ -197,8 +225,8 @@ export const ringBalance: KeyframeFunc<void> = (cur, { beats }) =>
 
 export const petronellaSpin: KeyframeFunc<void> = (cur, { beats }) =>
   cur.map((dancer, id) => {
-    const [, partner] = getOther(cur, id, { relation: "partner" });
-    const [, neighbor] = getOther(cur, id, { relation: "neighbor" });
+    const [, partner] = getCounterpart(cur, id, { relation: "partner" });
+    const [, neighbor] = getCounterpart(cur, id, { relation: "neighbor" });
     const center = vavg(partner.posn, neighbor.posn);
     const centerCcw = ccwTowards({ from: dancer.posn, to: center });
     const finalPosn =
@@ -219,12 +247,19 @@ export const petronellaSpin: KeyframeFunc<void> = (cur, { beats }) =>
     ]);
   });
 
-export const balance: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
+export const balance: KeyframeFunc<CounterpartRef> = (
+  cur,
+  { beats, ...counterpartRef }
+) =>
   cur.map((dancer, protoId) => {
-    const [counterpartId, counterpart] = getOther(cur, protoId, other);
+    const [counterpartId, counterpart] = getCounterpart(
+      cur,
+      protoId,
+      counterpartRef
+    );
     if (!isFacing(dancer, counterpart.posn, { maxTurns: 0.51 })) {
       throw new Error(
-        `${protoId} is trying to balance somebody (${JSON.stringify(
+        `${protoId} is trying to balance somebody (${stringifyDancerId(
           counterpartId
         )}) they're not facing`
       );
@@ -251,12 +286,19 @@ export const balance: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
     ]);
   });
 
-export const boxTheGnat: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
+export const boxTheGnat: KeyframeFunc<CounterpartRef> = (
+  cur,
+  { beats, ...counterpartRef }
+) =>
   cur.map((dancer, protoId) => {
-    const [counterpartId, counterpart] = getOther(cur, protoId, other);
+    const [counterpartId, counterpart] = getCounterpart(
+      cur,
+      protoId,
+      counterpartRef
+    );
     if (!isFacing(dancer, counterpart.posn, { maxTurns: 0.51 })) {
       throw new Error(
-        `${protoId} is trying to box the gnat with somebody (${JSON.stringify(
+        `${protoId} is trying to box the gnat with somebody (${stringifyDancerId(
           counterpartId
         )}) they're not facing`
       );
@@ -292,9 +334,12 @@ export const rightLeftThrough: KeyframeFunc<void> = (cur, { beats }) =>
     ]);
   });
 
-export const larksRollAway: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
+export const larksRollAway: KeyframeFunc<CounterpartRef> = (
+  cur,
+  { beats, ...counterpartRef }
+) =>
   cur.map((dancer, protoId) => {
-    const [, counterpart] = getOther(cur, protoId, other);
+    const [, counterpart] = getCounterpart(cur, protoId, counterpartRef);
     return moves(dancer, [
       {
         beats,
@@ -309,9 +354,9 @@ export const circle: KeyframeFunc<{
   spots: number;
 }> = (cur, { beats, handedness, spots }) =>
   cur.map((dancer, id) => {
-    const [, partner] = getOther(cur, id, { relation: "partner" });
-    const [, neighbor] = getOther(cur, id, { relation: "neighbor" });
-    const [, opposite] = getOther(cur, id, { relation: "opposite" });
+    const [, partner] = getCounterpart(cur, id, { relation: "partner" });
+    const [, neighbor] = getCounterpart(cur, id, { relation: "neighbor" });
+    const [, opposite] = getCounterpart(cur, id, { relation: "opposite" });
     const rightPosn =
       partner.posn
         .clone()
@@ -340,9 +385,12 @@ export const passThrough: KeyframeFunc<void> = (cur, { beats }) =>
     ])
   );
 
-export const doSiDo1: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
+export const doSiDo1: KeyframeFunc<CounterpartRef> = (
+  cur,
+  { beats, ...counterpartRef }
+) =>
   cur.map((dancer, protoId) => {
-    const [, counterpart] = getOther(cur, protoId, other);
+    const [, counterpart] = getCounterpart(cur, protoId, counterpartRef);
     const rc = reCoord(dancer.posn, counterpart.posn);
     return moves(dancer, [
       { beats: beats / 4, x: rc(0.5, 0.2) },
@@ -352,9 +400,12 @@ export const doSiDo1: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
     ]);
   });
 
-export const doSiDo112: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
+export const doSiDo112: KeyframeFunc<CounterpartRef> = (
+  cur,
+  { beats, ...counterpartRef }
+) =>
   cur.map((dancer, protoId) => {
-    const [, counterpart] = getOther(cur, protoId, other);
+    const [, counterpart] = getCounterpart(cur, protoId, counterpartRef);
     const rc = reCoord(dancer.posn, counterpart.posn);
     return moves(dancer, [
       { beats: beats / 6, x: rc(0.5, +0.2) },

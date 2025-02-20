@@ -7,9 +7,11 @@ import {
   DancerState,
   InstructionDir,
   LARK,
-  Other,
+  CounterpartRef,
   parseDancerId,
+  PD_DOWN,
   PD_UP,
+  ProgressDirection,
   ProtoId,
   ROBIN,
   Role,
@@ -61,10 +63,10 @@ export function h4Offset(dancer: DancerState, h4Id: number): DancerState {
   };
 }
 
-export function getOther(
+export function getCounterpart(
   protoStates: ByProto<DancerState>,
   id: ProtoId | DancerId,
-  { relation, h4Offset }: Other,
+  counterpartRef: CounterpartRef,
   {
     maxDist = LENGTH_PERIOD * 0.99,
     checkSymmetry = true,
@@ -73,49 +75,50 @@ export function getOther(
   if (typeof id === "string") {
     id = { h4Id: 0, protoId: id };
   }
+  const ourState = getDancer(protoStates, id);
   const { protoId, h4Id } = id;
-  const otherId = {
-    h4Id:
-      h4Id +
-      (h4Offset ?? 0) *
-        (protoStates.get(protoId)!.progressDirection === PD_UP ? 1 : -1), // What about shadows? Maybe this sign should be (neighbor ? (up ? 1 : -1) : partner ? (lark ? 1 : -1)).
-    protoId: (() => {
-      switch (relation) {
-        case "partner":
-          return partnerProtoId(protoId);
-        case "neighbor":
-          return neighborProtoId(protoId);
-        case "opposite":
-          return partnerProtoId(neighborProtoId(protoId));
-      }
-    })(),
-  };
-  const otherState = getDancer(protoStates, otherId);
-  if (otherState.posn.distance(protoStates.get(protoId)!.posn) > maxDist) {
+  const cpId: DancerId = (() => {
+    switch (counterpartRef.relation) {
+      case "partner":
+        return partnerId(id);
+      case "neighbor":
+        return neighborId(id, counterpartRef.h4Offset ?? 0);
+      case "opposite":
+        return neighborId(partnerId(id), counterpartRef.h4Offset ?? 0);
+      case "shadow":
+        return {
+          protoId: partnerProtoId(protoId),
+          h4Id:
+            h4Id +
+            (counterpartRef.larkH4Offset ?? 0) *
+              (ourState.role === LARK ? 1 : -1),
+        };
+    }
+  })();
+  const cpState = getDancer(protoStates, cpId);
+  if (cpState.posn.distance(ourState.posn) > maxDist) {
     throw new Error(
-      `${protoId} is too far from ${JSON.stringify(
-        otherId
+      `${stringifyDancerId(id)} is too far from ${stringifyDancerId(
+        cpId
       )} to meaningfully interact`
     );
   }
 
   if (checkSymmetry) {
     // Sanity check: this relationship should always be symmetric.
-    const [nextId] = getOther(
-      protoStates,
-      otherId,
-      { relation, h4Offset },
-      { checkSymmetry: false }
-    );
+    const [nextId] = getCounterpart(protoStates, cpId, counterpartRef, {
+      maxDist,
+      checkSymmetry: false,
+    });
     if (!(nextId.protoId === protoId && nextId.h4Id === h4Id)) {
       throw new Error(
-        `unexpectedly asymmetric interaction: ${JSON.stringify(
+        `unexpectedly asymmetric interaction: ${stringifyDancerId(
           id
-        )} -> ${JSON.stringify(otherId)} -> ${JSON.stringify(nextId)}`
+        )} -> ${stringifyDancerId(cpId)} -> ${stringifyDancerId(nextId)}`
       );
     }
   }
-  return [otherId, otherState];
+  return [cpId, cpState];
 }
 
 export function getDancer(
@@ -236,13 +239,9 @@ export const structuredDancerId = (id: DancerId | DancerIdStr): DancerId => {
   return { protoId: id.protoId, h4Id: id.h4Id };
 };
 
-export function shadowId(id: DancerId | DancerIdStr, offset: number): DancerId {
-  id = structuredDancerId(id);
-  return { protoId: partnerProtoId(id.protoId), h4Id: id.h4Id + offset };
-}
-
 export function partnerId(id: DancerId | DancerIdStr): DancerId {
-  return shadowId(id, 0);
+  id = structuredDancerId(id);
+  return { protoId: partnerProtoId(id.protoId), h4Id: id.h4Id };
 }
 
 export function neighborId(
@@ -250,7 +249,10 @@ export function neighborId(
   h4Offset: number = 0
 ): DancerId {
   id = structuredDancerId(id);
-  return { protoId: neighborProtoId(id.protoId), h4Id: id.h4Id + h4Offset };
+  return {
+    protoId: neighborProtoId(id.protoId),
+    h4Id: id.h4Id + h4Offset * (id2progdir(id.protoId) == PD_UP ? 1 : -1),
+  };
 }
 
 export function id2role(id: ProtoId): Role {
@@ -261,6 +263,16 @@ export function id2role(id: ProtoId): Role {
     case "R1":
     case "R2":
       return ROBIN;
+  }
+}
+export function id2progdir(id: ProtoId): ProgressDirection {
+  switch (id) {
+    case "L1":
+    case "R1":
+      return PD_UP;
+    case "L2":
+    case "R2":
+      return PD_DOWN;
   }
 }
 export function otherRole(role: Role): Role {
