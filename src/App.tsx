@@ -99,7 +99,7 @@ function ContraDance() {
     [keyframes]
   );
   const nAnimatedBeats = compositionError
-    ? nBeatsChoreographed
+    ? nBeatsChoreographed - 0.01
     : 2 * nBeatsChoreographed;
 
   const anim = useRef(anime.timeline({ autoplay: false }));
@@ -234,7 +234,7 @@ function ContraDance() {
           type="range"
           min="0"
           max={nAnimatedBeats}
-          step="0.1"
+          step="0.01"
           value={beat}
           onChange={(e) => setBeat(parseFloat(e.target.value))}
         />
