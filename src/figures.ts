@@ -2,6 +2,7 @@ import Victor from "victor";
 import { LARK, ROBIN, alignCcw, KeyframeFunc } from "./types";
 import {
   ccwTowards,
+  reCoord,
   getDancer,
   getNearbyDancers,
   instructionDir2Vec,
@@ -35,9 +36,8 @@ export const swing: KeyframeFunc<void> = (cur, { beats }) =>
     }
     const [, counterpart] = maybeCounterpart;
 
-    const midpoint = vavg(dancer.posn, counterpart.posn);
-    const toMidpointN = (len: number) =>
-      midpoint.clone().subtract(dancer.posn).normalize().multiplyScalar(len);
+    const ep = (x: number, y: number) =>
+      reCoord(dancer.posn, counterpart.posn, { x, y });
     const extraCcw = -(dancer.role === ROBIN ? 1 / 2 : 0);
     const swapPosns =
       (dancer.posn.x < 0 !== (dancer.role === LARK)) !==
@@ -46,37 +46,27 @@ export const swing: KeyframeFunc<void> = (cur, { beats }) =>
       return moves(dancer, [
         {
           beats: beats / 6,
-          x: midpoint
-            .clone()
-            .add(toMidpointN(0.3).rotate(2 * Math.PI * (1 / 4))),
+          x: ep(0.5, 0.2),
           dccw: -1 / 4,
         },
         {
           beats: beats / 6,
-          x: midpoint
-            .clone()
-            .add(toMidpointN(0.3).rotate(2 * Math.PI * (0 / 4))),
+          x: ep(0.7, 0.0),
           dccw: -1 / 2,
         },
         {
           beats: beats / 6,
-          x: midpoint
-            .clone()
-            .add(toMidpointN(0.3).rotate(2 * Math.PI * (-1 / 4))),
+          x: ep(0.5, -0.2),
           dccw: -3 / 4,
         },
         {
           beats: beats / 6,
-          x: midpoint
-            .clone()
-            .add(toMidpointN(0.3).rotate(2 * Math.PI * (-2 / 4))),
+          x: ep(0.3, 0.0),
           dccw: -4 / 4,
         },
         {
           beats: beats / 6,
-          x: midpoint
-            .clone()
-            .add(toMidpointN(0.3).rotate(2 * Math.PI * (-3 / 4))),
+          x: ep(0.5, 0.2),
           dccw: -5 / 4,
         },
         {
@@ -89,23 +79,17 @@ export const swing: KeyframeFunc<void> = (cur, { beats }) =>
       return moves(dancer, [
         {
           beats: beats / 4,
-          x: midpoint
-            .clone()
-            .add(toMidpointN(0.3).rotate(2 * Math.PI * (1 / 4))),
+          x: ep(0.5, 0.2),
           dccw: -1 / 4,
         },
         {
           beats: beats / 4,
-          x: midpoint
-            .clone()
-            .add(toMidpointN(0.3).rotate(2 * Math.PI * (0 / 4))),
+          x: ep(0.7, 0.0),
           dccw: -2 / 4,
         },
         {
           beats: beats / 4,
-          x: midpoint
-            .clone()
-            .add(toMidpointN(0.3).rotate(2 * Math.PI * (-1 / 4))),
+          x: ep(0.5, -0.2),
           dccw: -3 / 4,
         },
         { beats: beats / 4, dccw: -3 / 4 + extraCcw },

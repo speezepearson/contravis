@@ -308,3 +308,20 @@ export function id2role(id: ProtoId): Role {
 export function otherRole(role: Role): Role {
   return role === LARK ? ROBIN : LARK;
 }
+
+export function reCoord(
+  origin: Victor,
+  x1: Victor,
+  { x, y }: { x: number; y: number }
+): Victor {
+  const delta = x1.clone().subtract(origin);
+  return origin
+    .clone()
+    .add(delta.clone().multiplyScalar(x))
+    .add(
+      delta
+        .clone()
+        .rotate(Math.PI / 2)
+        .multiplyScalar(y)
+    );
+}
