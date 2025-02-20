@@ -67,7 +67,7 @@ export function getOther(
   const otherId = {
     h4Id:
       (h4Offset ?? 0) *
-      (protoStates.get(protoId)!.progressDirection === PD_UP ? 1 : -1),
+      (protoStates.get(protoId)!.progressDirection === PD_UP ? 1 : -1), // What about shadows? Maybe this sign should be (neighbor ? (up ? 1 : -1) : partner ? (lark ? 1 : -1)).
     protoId:
       relation === "partner"
         ? partnerProtoId(protoId)
