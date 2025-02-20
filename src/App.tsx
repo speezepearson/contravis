@@ -83,13 +83,17 @@ function ContraDance() {
       [keyframes, showH4Ids]
     );
 
-  const totalBeats =
-    keyframes
-      .valueSeq()
-      .first()
-      ?.reduce((acc, kf) => {
-        return acc + kf.beats;
-      }, 0) ?? 0;
+  const nBeatsChoreographed = useMemo(
+    () =>
+      keyframes
+        .valueSeq()
+        .first()
+        ?.reduce((acc, kf) => {
+          return acc + kf.beats;
+        }, 0) ?? 0,
+    [keyframes]
+  );
+  const nAnimatedBeats = 2 * nBeatsChoreographed;
 
   const anim = useRef(anime.timeline({ autoplay: false }));
   useEffect(() => {
@@ -98,22 +102,36 @@ function ContraDance() {
     prev.pause();
 
     anim.current = anime.timeline({
-      duration: beatsToMs(totalBeats),
+      duration: beatsToMs(nBeatsChoreographed),
       easing: "linear",
       autoplay: false,
       loop: true,
       update: (anim) => {
-        setBeat((anim.progress / 100) * totalBeats);
+        setBeat((anim.progress / 100) * nAnimatedBeats);
       },
     });
 
+    // To make the animation loop more seamlessly, we want a single loop to actually consist of
+    // *two* iterations of the dance. (Because, with a single-progression dance, after one iteration,
+    // the larks are standing where the robins used to be. We need to progress twice to get them
+    // where their predecessors are.)
+    function double(kfs: List<DancerKeyframe>): List<DancerKeyframe> {
+      if (kfs.isEmpty()) return kfs;
+      const dx = kfs.last()!.end.posn.clone().subtract(kfs.first()!.end.posn);
+      return kfs.concat(
+        kfs.map((kf) => ({
+          ...kf,
+          end: { ...kf.end, posn: kf.end.posn.clone().add(dx) },
+        }))
+      );
+    }
     for (const [protoId, kfs] of keyframes.entries()) {
       for (const h4Id of showH4Ids) {
         const idStr = stringifyDancerId({ protoId, h4Id });
         anim.current.add(
           {
             targets: dancerRefs.get(idStr),
-            keyframes: kfs
+            keyframes: double(kfs)
               .map((kf) => ({
                 ...animeProps(h4Offset(kf.end, h4Id)),
                 duration: beatsToMs(kf.beats),
@@ -129,14 +147,21 @@ function ContraDance() {
     if (!wasPaused) {
       anim.current.play();
     }
-  }, [dancerRefs, keyframes, totalBeats, beatsToMs, showH4Ids]);
+  }, [
+    dancerRefs,
+    keyframes,
+    nBeatsChoreographed,
+    nAnimatedBeats,
+    beatsToMs,
+    showH4Ids,
+  ]);
 
   const [beat, setBeat] = useState(0);
   useEffect(() => {
-    if (beat > totalBeats) {
-      setBeat(totalBeats);
+    if (beat > nAnimatedBeats) {
+      setBeat(nAnimatedBeats);
     }
-  }, [beat, totalBeats]);
+  }, [beat, nAnimatedBeats]);
   useEffect(() => {
     const wantAnimMs = beatsToMs(beat);
     if (Math.abs(anim.current.currentTime - wantAnimMs) < 1) {
@@ -148,7 +173,7 @@ function ContraDance() {
     if (!wasPaused) {
       anim.current.play();
     }
-  }, [beat, totalBeats, beatsToMs]);
+  }, [beat, nBeatsChoreographed, beatsToMs]);
 
   useEffect(() => {
     setMinH4Id(
@@ -199,7 +224,7 @@ function ContraDance() {
         <input
           type="range"
           min="0"
-          max={totalBeats}
+          max={2 * nBeatsChoreographed}
           step="0.1"
           value={beat}
           onChange={(e) => setBeat(parseFloat(e.target.value))}
@@ -229,7 +254,7 @@ function ContraDance() {
           <CallList
             calls={dance.calls}
             setCalls={(calls) => setDance((dance) => ({ ...dance, calls }))}
-            highlightAtBeat={beat}
+            highlightAtBeat={beat % nBeatsChoreographed}
             compositionError={compositionError}
           />
         </div>
@@ -256,7 +281,9 @@ function ContraDance() {
                         ref={setDancerRef.get(
                           stringifyDancerId({ protoId, h4Id })
                         )}
-                        label={`${h4Id}`}
+                        label={`${dancer.role === LARK ? "L" : "R"}${
+                          dancer.progressDirection === "up" ? "1" : "2"
+                        }.${h4Id}`}
                         fill={
                           dancer.progressDirection === "up"
                             ? "#00000044"
@@ -269,7 +296,9 @@ function ContraDance() {
                         ref={setDancerRef.get(
                           stringifyDancerId({ protoId, h4Id })
                         )}
-                        label={`${h4Id}`}
+                        label={`${dancer.role === LARK ? "L" : "R"}${
+                          dancer.progressDirection === "up" ? "1" : "2"
+                        }.${h4Id}`}
                         fill={
                           dancer.progressDirection === "up"
                             ? "#00000044"
