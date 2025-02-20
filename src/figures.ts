@@ -13,7 +13,7 @@ import { fwd, left, move, moves, partnerward, right } from "./contra";
 
 export const swing: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
   cur.map((dancer, protoId) => {
-    const [, counterpart] = getOther(cur, protoId, other);
+    const [counterpartId, counterpart] = getOther(cur, protoId, other);
     if (!sameSideOfSet(dancer.posn, counterpart.posn)) {
       throw new Error(
         `${protoId} is trying to swing with somebody across the set`
@@ -21,7 +21,9 @@ export const swing: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
     }
     if (!isFacing(dancer, counterpart.posn, { maxTurns: 0.501 })) {
       throw new Error(
-        `${protoId} is trying to swing with somebody not facing them`
+        `${protoId} is trying to swing with somebody (${JSON.stringify(
+          counterpartId
+        )}) they're not facing`
       );
     }
 
@@ -222,7 +224,9 @@ export const balance: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
     const [counterpartId, counterpart] = getOther(cur, protoId, other);
     if (!isFacing(dancer, counterpart.posn, { maxTurns: 0.51 })) {
       throw new Error(
-        `${protoId} is trying to balance somebody (${counterpartId}) they're not facing`
+        `${protoId} is trying to balance somebody (${JSON.stringify(
+          counterpartId
+        )}) they're not facing`
       );
     }
 
@@ -249,10 +253,12 @@ export const balance: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
 
 export const boxTheGnat: KeyframeFunc<Other> = (cur, { beats, ...other }) =>
   cur.map((dancer, protoId) => {
-    const [, counterpart] = getOther(cur, protoId, other);
+    const [counterpartId, counterpart] = getOther(cur, protoId, other);
     if (!isFacing(dancer, counterpart.posn, { maxTurns: 0.51 })) {
       throw new Error(
-        `${protoId} is trying to box the gnat with somebody not facing them`
+        `${protoId} is trying to box the gnat with somebody (${JSON.stringify(
+          counterpartId
+        )}) they're not facing`
       );
     }
     const finalCcw =

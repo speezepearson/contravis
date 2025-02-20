@@ -136,6 +136,31 @@ function SimpleDropdown<T extends string>({
   );
 }
 
+function OffsetDropdown({
+  value,
+  onChange,
+}: {
+  value: number | undefined;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <select
+      value={value ?? 0}
+      onChange={(e) => onChange(parseInt(e.target.value))}
+    >
+      <option value={-4}>prev^4</option>
+      <option value={-3}>prev^3</option>
+      <option value={-2}>prev^2</option>
+      <option value={-1}>prev</option>
+      <option value={0}></option>
+      <option value={1}>next</option>
+      <option value={2}>next^2</option>
+      <option value={3}>next^3</option>
+      <option value={4}>next^4</option>
+    </select>
+  );
+}
+
 function CallElem({
   call,
   setCall,
@@ -171,6 +196,10 @@ function CallElem({
       return (
         <>
           swing your{" "}
+          <OffsetDropdown
+            value={call.h4Offset}
+            onChange={(v) => setCall({ ...call, h4Offset: v })}
+          />
           <SimpleDropdown
             value={call.relation}
             options={["partner", "neighbor"]}
@@ -182,6 +211,10 @@ function CallElem({
       return (
         <>
           robins chain to your{" "}
+          <OffsetDropdown
+            value={call.h4Offset}
+            onChange={(v) => setCall({ ...call, h4Offset: v })}
+          />
           <SimpleDropdown
             value={call.relation}
             options={["partner", "neighbor"]}
@@ -201,6 +234,10 @@ function CallElem({
       return (
         <>
           balance with your{" "}
+          <OffsetDropdown
+            value={call.h4Offset}
+            onChange={(v) => setCall({ ...call, h4Offset: v })}
+          />
           <SimpleDropdown
             value={call.relation}
             options={["partner", "neighbor"]}
@@ -212,6 +249,10 @@ function CallElem({
       return (
         <>
           box the gnat with your{" "}
+          <OffsetDropdown
+            value={call.h4Offset}
+            onChange={(v) => setCall({ ...call, h4Offset: v })}
+          />
           <SimpleDropdown
             value={call.relation}
             options={["partner", "neighbor"]}
@@ -224,7 +265,11 @@ function CallElem({
     case "larksRollAway":
       return (
         <>
-          larks roll away your{" "}
+          larks roll away from your{" "}
+          <OffsetDropdown
+            value={call.h4Offset}
+            onChange={(v) => setCall({ ...call, h4Offset: v })}
+          />
           <SimpleDropdown
             value={call.relation}
             options={["partner", "neighbor"]}
@@ -260,6 +305,10 @@ function CallElem({
       return (
         <>
           do si do with your{" "}
+          <OffsetDropdown
+            value={call.h4Offset}
+            onChange={(v) => setCall({ ...call, h4Offset: v })}
+          />
           <SimpleDropdown
             value={call.relation}
             options={["partner", "neighbor"]}
@@ -271,6 +320,10 @@ function CallElem({
       return (
         <>
           do si do 1 1/2 with your{" "}
+          <OffsetDropdown
+            value={call.h4Offset}
+            onChange={(v) => setCall({ ...call, h4Offset: v })}
+          />
           <SimpleDropdown
             value={call.relation}
             options={["partner", "neighbor"]}
